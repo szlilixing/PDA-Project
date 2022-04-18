@@ -1,0 +1,901 @@
+##ESTIMATE——————————————————————————————————————————————————————
+rm(list=ls())
+setwd("F:\\T1220\\immune analysis\\ESTIMATE")
+
+library(utils)
+library(estimate)
+library(help="estimate").
+
+filterCommonGenes(input.f = "CC2-AI-Z-Tumor-T845-1-1220.txt", 
+                  output.f = "exprSet_symbol.gct", id = "GeneSymbol")
+estimateScore("exprSet_symbol.gct","escore.gct")
+
+
+###read results
+estimate_score <- read.table("escore.gct",
+                             sep = "	", skip = 2,
+                             header  = T)
+rownames(estimate_score) <- estimate_score[, 1]
+estimate_score <- as.data.frame(t(estimate_score[, -c(1,2)]))
+estimate_score[1:5, 1:3]
+write.table(estimate_score,"estimatepaad-845.txt",sep = "\t",quote = F)
+
+plotPurity(scores="escore.gct")
+
+
+###
+ph <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'", header = T)
+phsi <- ph[ph$sil_width.1>0.01,]
+ee <- estimate_score[as.character(phsi$title),]
+tt <- cbind(ee, phsi)
+write.table(tt, "estmate845-clinic.txt", sep = "\t", quote = F, row.names = F)
+
+save.image(file = "estimate845.Rdata")
+
+library(ggplot)
+library(ggpubr)
+ggboxplot(estimate_score, x = "type", y = "ImmuneScore",
+          color = "type", palette = c("#00AFBB", "#E7B800", "#FC4E07", "#c00000"),
+          add = "jitter", shape = "type") + stat_compare_means(label.y = 3500) 
+
+ggboxplot(estimate_score, x = "type", y = "StromalScore",
+          color = "type", palette = c("#00AFBB", "#E7B800", "#FC4E07", "#c00000"),
+          add = "jitter", shape = "type") + stat_compare_means(label.y = -2000) 
+#####ssGSEA——————————————————————————————————————————————————————
+rm(list=ls())
+setwd("F:\\PDAC-Results\\Supplement info-220129\\ssGSEA")
+geneset <- read.table("geneset.txt",sep = "\t",quote = "",header = T)
+gene_set <- geneset
+
+list <- list()
+for(i in 1:length(unique(gene_set$Cell.type))){
+  list[[i]] <- gene_set$Metagene[gene_set$Cell.type== (unique(gene_set$Cell.type)[i])]
+}
+names(list)<- unique(gene_set$Cell.type)
+list
+save(list,file='gene_set.Rdata')
+###ssGSEA
+m <- read.table('CC2-AI-Z-Tumor-T845-1-1220.txt',
+                header = T,
+                row.names=1)
+###Load pheno info
+pheno <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'", header = T)
+phsi <- pheno[pheno$sil_width.1 > 0.01,]
+a <- m[,as.character(phsi$title)]
+raw_data<- a
+pheno <- phsi
+
+####Filteration
+data<- a[!apply(raw_data,1,sum)==0,]
+####Deduplication & Normalization
+data$median=apply(data[,-1],1,median)
+data$GeneName <- rownames(data)
+data=data[order(data$GeneName,data$median,decreasing = T),]
+data=data[!duplicated(data$GeneName),]
+rownames(data)=data$GeneName
+uni_matrix <- data[,grep('\\d+',colnames(data))]
+#uni_matrix <- log2(uni_matrix+1)
+colnames(uni_matrix)<- gsub('X','',gsub('\\.','\\-',colnames(uni_matrix)))
+uni_matrix<- uni_matrix[,order(colnames(uni_matrix))]
+save(uni_matrix,pheno,file = 'uni_matrix.Rdata')
+###Source from https://www.jianshu.com/p/da1dbbf793ab
+
+library(genefilter)
+library(GSVA)
+library(Biobase)
+load('gene_set.Rdata')
+gsva_matrix <- gsva(as.matrix(uni_matrix), list,method='ssgsea',kcdf='Gaussian',abs.ranking=TRUE)
+write.table(gsva_matrix, "gsva_matrix-ssGSEA28-845-220205.txt", sep = "\t", quote = F, row.names = F)
+
+library(pheatmap)
+gsva_matrix1<- t(scale(t(gsva_matrix)))
+gsva_matrix1[gsva_matrix1< -2] <- -2
+gsva_matrix1[gsva_matrix1>2] <- 2
+anti_tumor <- c('Activated CD4 T cell', 'Activated CD8 T cell', 'Central memory CD4 T cell', 'Central memory CD8 T cell', 'Effector memeory CD4 T cell', 'Effector memeory CD8 T cell', 'Type 1 T helper cell', 'Type 17 T helper cell', 'Activated dendritic cell', 'CD56bright natural killer cell', 'Natural killer cell', 'Natural killer T cell')
+pro_tumor <- c('Regulatory T cell', 'Type 2 T helper cell', 'CD56dim natural killer cell', 'Immature dendritic cell', 'Macrophage', 'MDSC', 'Neutrophil', 'Plasmacytoid dendritic cell')
+anti<- gsub('^ ','',rownames(gsva_matrix1))%in%anti_tumor
+pro<- gsub('^ ','',rownames(gsva_matrix1))%in%pro_tumor
+non <- !(anti|pro)
+gsva_matrix1<- rbind(gsva_matrix1[anti,],gsva_matrix1[pro,],gsva_matrix1[non,])
+normalization<-function(x){
+  return((x-min(x))/(max(x)-min(x)))}
+nor_gsva_matrix1 <- normalization(gsva_matrix1)
+
+pheno <- pheno[order(pheno$cluster6),]
+nor_gsva_matrix1 <- nor_gsva_matrix1[,as.character(pheno$title)]
+
+annotation_col = data.frame(MSOP=pheno$cluster6)
+annotation_col$MSOP <- paste("MS",annotation_col$MSOP, sep = "")
+ann_colors = list(MSOP = c(`MS1` = "#00468B",`MS2` = "#ED0000", `MS3` = "#42B540", `MS4` = "#0099B4", `MS5` = "#925E9F", `MS6` = "#FDAF91" ))
+rownames(annotation_col)<-colnames(nor_gsva_matrix1)
+
+sum(pheno$cluster6%in%c(1,2,3,4,5))
+
+bk = unique(c(seq(0,1, length=100)))
+pheatmap(nor_gsva_matrix1,show_colnames = F,cluster_rows = F,cluster_cols = F,
+         color = colorRampPalette(c("#A1CD88", "white", "#BD6479"))(100),
+         annotation_col = annotation_col,annotation_colors = ann_colors,
+         gaps_row = c(12,20), gaps_col = c(41,114,257,327,513))
+
+save.image(file = "ssGSEA220205.Rdata")
+
+#######CIBERSORTx——————————————————————————————————————————————————————
+rm(list = ls())  
+setwd("F:\\PDAC-Results\\Supplement info-220129\\cibersortx")
+
+library(ggplot2)
+library(tidyverse)
+library(reshape2)
+library(RColorBrewer)
+library(ggsci)
+#devtools::install_github("const-ae/ggsignif")
+library(ggsignif)
+library(ggthemes)
+library(grid)
+
+dtp <- read.table("CIBERSORTx_Job1_Adjusted.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = F)
+rownames(dtp) <- dtp$Mixture
+pheno <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = F)
+
+phsi <- pheno[pheno$sil_width.1 > 0.01,]
+phsi <- phsi[order(phsi$cluster6),]
+
+a <- dtp[as.character(phsi$title),]
+
+dtpp <- dtp 
+
+dtp <- a
+
+
+data <- dtp[dtp$P.value < 0.05,]
+
+cafs <- data[,1:23]
+
+
+colnames(cafs)[1] <- "Patient"
+cafs$Patient <- factor(cafs$Patient)
+#cafs$Patient <- factor(paste("MS", phsi$cluster6, sep = ""))
+
+library(reshape2)
+phylum.gg <- melt(cafs, id.vars="Patient", variable.name="CAF", value.name="Abundance")
+colnames(phylum.gg)[1] <- "Classification"
+phylum.gg$CAF <- factor(phylum.gg$CAF)
+
+library(ggplot2)
+library(RColorBrewer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+#cols <- pal_npg("nrc", alpha = 0.8)(22)
+#rainbow(n), heat.colors(n), terrain.colors(n), topo.colors(n)和cm.colors(n)
+cols <- rainbow(n=22,alpha = 0.65, rev = T)
+#cols <- terrain.colors(n=22,alpha = 0.3, rev = T)
+#scale_colour_manual(values=rainbow(7))
+
+pp <- ggplot(phylum.gg, aes(x = Classification, y = Abundance, fill=CAF)) +
+  geom_bar(stat = "identity",width = 1)+
+  scale_fill_manual(values = cols)+
+  scale_y_continuous(labels = scales::percent,expand = c(0, 0))+
+  #scale_y_continuous(labels = scales::percent)+
+  #scale_y_continuous(expand = c(0,0))+
+  scale_x_discrete(expand = c(0.05,0))+
+  #coord_cartesian(ylim = c(0,1))+
+  #ylim = (0,1)+
+  labs(fill = "",x = "Pancreatic ductal adenocarcinoma patients")+
+  guides(fill=guide_legend(ncol=1))+
+  theme(
+    axis.text.y.left = element_text(size = 12,face = "bold"), #修改坐标轴文本大小
+    axis.text.x=element_blank(),
+    #axis.title.y = element_blank(),
+    #panel.border = element_rect(fill=NA,color="black", size=0.5, linetype="solid"),
+    panel.border = element_blank(),
+    #strip.background = element_rect(color = "white", fill = "white"),
+    panel.grid = element_blank(),
+    #panel.background = element_rect(fill="white"),
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(), 
+    axis.ticks.length.y=unit(0.15, "cm"),
+    axis.line.y = element_line(),
+    #axis.line.y = element_blank(),
+    title = element_text(size=16,face = "bold"),
+    legend.position = 'right',
+    legend.justification = c("right", "top"),
+    #legend.position = c("0.8" ,"0.755"),
+    legend.title = element_text(size = 8,face = "bold"),
+    legend.text = element_text(size = 8),
+    #legend.spacing = unit(0.4, "cm"),
+    legend.key.size = unit(0.25, "cm"),
+    #    legend.key.height  = unit(0.5, "cm"),
+    legend.key = element_blank()
+    #legend.background = element_rect(fill="white", size=0.5
+    #                                 , colour = "black", linetype="dotted"
+    #                                )
+  )
+
+pp
+###12:4.5
+legend.justification = c("right", "top")
+#data$group <- ifelse(data$Index>=median(data$Index),"High","Low")
+
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(hrbrthemes)
+library(viridis)
+#BiocManager::install("pacman")
+library(pacman)
+library(ggpubr)
+
+
+
+library(ggplot2)
+library(reshape2)
+library(plyr)
+
+
+#BiocManager::install("vioplot")
+library("vioplot")
+data1 <- cafs[,2:23]
+data1$group <- factor(paste("MS", phsi$cluster6, sep = ""))
+
+vioplot(data1[data1$group=="MS1",1],
+        data1[data1$group=="MS2",1],
+        data1[data1$group=="MS3",1],
+        data1[data1$group=="MS4",1],
+        data1[data1$group=="MS5",1],
+        data1[data1$group=="MS6",1],
+
+        data1[data1$group=="MS1",2],
+        data1[data1$group=="MS2",2],
+        data1[data1$group=="MS3",2],
+        data1[data1$group=="MS4",2],
+        data1[data1$group=="MS5",2],
+        data1[data1$group=="MS6",2],
+        
+        data1[data1$group=="MS1",3],
+        data1[data1$group=="MS2",3],
+        data1[data1$group=="MS3",3],
+        data1[data1$group=="MS4",3],
+        data1[data1$group=="MS5",3],
+        data1[data1$group=="MS6",3],
+        
+        data1[data1$group=="MS1",4],
+        data1[data1$group=="MS2",4],
+        data1[data1$group=="MS3",4],
+        data1[data1$group=="MS4",4],
+        data1[data1$group=="MS5",4],
+        data1[data1$group=="MS6",4],
+        
+        data1[data1$group=="MS1",5],
+        data1[data1$group=="MS2",5],
+        data1[data1$group=="MS3",5],
+        data1[data1$group=="MS4",5],
+        data1[data1$group=="MS5",5],
+        data1[data1$group=="MS6",5],
+        
+        data1[data1$group=="MS1",6],
+        data1[data1$group=="MS2",6],
+        data1[data1$group=="MS3",6],
+        data1[data1$group=="MS4",6],
+        data1[data1$group=="MS5",6],
+        data1[data1$group=="MS6",6],
+        
+        data1[data1$group=="MS1",7],
+        data1[data1$group=="MS2",7],
+        data1[data1$group=="MS3",7],
+        data1[data1$group=="MS4",7],
+        data1[data1$group=="MS5",7],
+        data1[data1$group=="MS6",7],
+        
+        data1[data1$group=="MS1",8],
+        data1[data1$group=="MS2",8],
+        data1[data1$group=="MS3",8],
+        data1[data1$group=="MS4",8],
+        data1[data1$group=="MS5",8],
+        data1[data1$group=="MS6",8],
+        
+        data1[data1$group=="MS1",9],
+        data1[data1$group=="MS2",9],
+        data1[data1$group=="MS3",9],
+        data1[data1$group=="MS4",9],
+        data1[data1$group=="MS5",9],
+        data1[data1$group=="MS6",9],
+        
+        data1[data1$group=="MS1",10],
+        data1[data1$group=="MS2",10],
+        data1[data1$group=="MS3",10],
+        data1[data1$group=="MS4",10],
+        data1[data1$group=="MS5",10],
+        data1[data1$group=="MS6",10],
+        
+        data1[data1$group=="MS1",11],
+        data1[data1$group=="MS2",11],
+        data1[data1$group=="MS3",11],
+        data1[data1$group=="MS4",11],
+        data1[data1$group=="MS5",11],
+        data1[data1$group=="MS6",11],
+        
+        data1[data1$group=="MS1",12],
+        data1[data1$group=="MS2",12],
+        data1[data1$group=="MS3",12],
+        data1[data1$group=="MS4",12],
+        data1[data1$group=="MS5",12],
+        data1[data1$group=="MS6",12],
+        
+        data1[data1$group=="MS1",13],
+        data1[data1$group=="MS2",13],
+        data1[data1$group=="MS3",13],
+        data1[data1$group=="MS4",13],
+        data1[data1$group=="MS5",13],
+        data1[data1$group=="MS6",13],
+        
+        data1[data1$group=="MS1",14],
+        data1[data1$group=="MS2",14],
+        data1[data1$group=="MS3",14],
+        data1[data1$group=="MS4",14],
+        data1[data1$group=="MS5",14],
+        data1[data1$group=="MS6",14],
+        
+        data1[data1$group=="MS1",15],
+        data1[data1$group=="MS2",15],
+        data1[data1$group=="MS3",15],
+        data1[data1$group=="MS4",15],
+        data1[data1$group=="MS5",15],
+        data1[data1$group=="MS6",15],
+        
+        data1[data1$group=="MS1",16],
+        data1[data1$group=="MS2",16],
+        data1[data1$group=="MS3",16],
+        data1[data1$group=="MS4",16],
+        data1[data1$group=="MS5",16],
+        data1[data1$group=="MS6",16],
+        
+        data1[data1$group=="MS1",17],
+        data1[data1$group=="MS2",17],
+        data1[data1$group=="MS3",17],
+        data1[data1$group=="MS4",17],
+        data1[data1$group=="MS5",17],
+        data1[data1$group=="MS6",17],
+        
+        data1[data1$group=="MS1",18],
+        data1[data1$group=="MS2",18],
+        data1[data1$group=="MS3",18],
+        data1[data1$group=="MS4",18],
+        data1[data1$group=="MS5",18],
+        data1[data1$group=="MS6",18],
+        
+        data1[data1$group=="MS1",19],
+        data1[data1$group=="MS2",19],
+        data1[data1$group=="MS3",19],
+        data1[data1$group=="MS4",19],
+        data1[data1$group=="MS5",19],
+        data1[data1$group=="MS6",19],
+        
+        data1[data1$group=="MS1",20],
+        data1[data1$group=="MS2",20],
+        data1[data1$group=="MS3",20],
+        data1[data1$group=="MS4",20],
+        data1[data1$group=="MS5",20],
+        data1[data1$group=="MS6",20],
+        
+        data1[data1$group=="MS1",21],
+        data1[data1$group=="MS2",21],
+        data1[data1$group=="MS3",21],
+        data1[data1$group=="MS4",21],
+        data1[data1$group=="MS5",21],
+        data1[data1$group=="MS6",21],
+        
+        data1[data1$group=="MS1",22],
+        data1[data1$group=="MS2",22],
+        data1[data1$group=="MS3",22],
+        data1[data1$group=="MS4",22],
+        data1[data1$group=="MS5",22],
+        data1[data1$group=="MS6",22])
+
+x=c(0:5)
+y=c(0:5)
+plot(x, y, xlim=c(0,130),xlab='',ylab='Relative Fraction'
+     ,main=''
+     , ylim=c(min(data1[,1:22]),max(data1[,1:22])+0.01),pch=21,col='white',xaxt="n")
+for(i in 1:22){
+  MS1=data1[data1$group=="MS1",i]
+  MS2=data1[data1$group=="MS2",i]
+  MS3=data1[data1$group=="MS3",i]
+  MS4=data1[data1$group=="MS4",i]
+  MS5=data1[data1$group=="MS5",i]
+  MS6=data1[data1$group=="MS6",i]
+
+  #c("#51C7BB", "#DE406E")
+  vioplot(add = T,col = '#00468B',MS1,at=6*(i-1),lty=1)
+  vioplot(add = T,col = '#ED0000',MS2,at=6*(i-1)+1,lty=1)
+  vioplot(add = T,col = '#42B540',MS3,at=6*(i-1)+2,lty=1)
+  vioplot(add = T,col = '#0099B4',MS4,at=6*(i-1)+3,lty=1)
+  vioplot(add = T,col = '#925E9F',MS5,at=6*(i-1)+4,lty=1)
+  vioplot(add = T,col = '#FDAF91',MS6,at=6*(i-1)+5,lty=1)
+  
+  #p=round(wilcox.test(basal,noBasal)$p.value,3)#save<-.001
+  p=round(summary(aov(data1[,i]~data1$group,data = data1))[[1]][[1,"Pr(>F)"]],3)
+  
+  mx=max(c(MS1,MS2,MS3,MS4,MS5,MS6))
+  lines(c(x=6*(i-1)+0.2,x=6*(i-1)+4.8),c(mx+0.0075,mx+0.0075))
+  text(x=6*(i-1)+2.5,y=mx+0.015,labels=ifelse(p==0,paste0("p<0.001"),paste0("p=",p)),cex = 0.5)
+}
+
+
+MS1=data1[data1$group=="MS1",1]
+MS2=data1[data1$group=="MS2",1]
+MS3=data1[data1$group=="MS3",1]
+MS4=data1[data1$group=="MS4",1]
+MS5=data1[data1$group=="MS5",1]
+MS6=data1[data1$group=="MS6",1]
+
+aaaa <- aov(data1[,5]~data1$group,data = data1)
+aaaa[[1]][5][1,1]
+bbbb <- summary(aaaa)
+
+round(summary(aov(data1[,5]~data1$group,data = data1))[[1]][[1,"Pr(>F)"]],3)
+
+summary(aaaa)[[1]][[1,"Pr(>F)"]]
+
+
+#axis(side=1, at = c(0,1,3,4,6,7,9,10), labels = F, tick = TRUE)
+#text(c(0,1,3,4,6,7,9,10),rep(par("usr")[3]-0.7,8),xpd = NA,cex = 0.8
+#     ,labels=rep(c('Tumor','Normal'),4),srt = 45,adj=1)
+text((c(0:21)*6+2.5),rep(par("usr")[3]-0.01,8),xpd = T
+     ,labels=gsub("\\.", " ",colnames(data1)[1:22]),cex = 0.54,srt = 45,adj=1,font = 2)
+###10:6
+
+#####Gene to Gene Correlation analysis——————————————————————————————————————————————————————
+datasum <- a
+datasum["LAG3",]
+datasum["CD274",]
+datasum["HAVCR2",]
+datasum["CTLA4",]
+datasum["ICOS",]
+datasum["TNFRSF9",]#CD137
+datasum["TNFRSF4",]#OX40
+datasum["CD40L",]
+
+###
+datasum["NCR3",]#NKP30
+datasum["NCR2",]#NKP44
+#datasum["KLRK1",]#NKG2D
+#datasum["FCR",]#CD16
+datasum["CD244",]#2B4 
+datasum["KLRD1",]#CD94
+datasum["LILRB1",]#LIR1
+
+###
+datasum["CD159",]
+
+
+
+pheno <- pheno[order(pheno$cluster6),]
+datasum <- datasum[,as.character(pheno$title)]
+
+
+sig_gene <- c("LAG3","CD274","HAVCR2", "CTLA4", "ICOS","TNFRSF9","TNFRSF4",
+              "CD40L", "NCR3", "NCR2", "CD244", "KLRD1","LILRB1")
+cell_gene <- c("CD8A", "GZMB", "CD4", "CD33", "NCAM1", "CD14")
+
+datasum["NCAM1",]#CD56
+
+library(psych)
+x <- t(datasum[sig_gene,MS6])
+#y <- t(ssGSEA[,42:114])
+
+
+
+y <- t(datasum[cell_gene,MS6])
+#sum(pheno$cluster6%in%c(1,2,3,4,5))
+
+library(psych)
+d <- corr.test(x,y
+               ,use="complete")
+               #,method = 'spearman')#"pearson"
+
+  MS1 <- 1:41
+  MS2 <- 42:114
+  MS3 <- 115:257
+  MS4 <- 258:327
+  MS5 <- 328:513
+  MS6 <- 514:612
+
+
+r <- d$r
+p <- d$p
+
+#install.packages("ggcorrplot")
+library(ggcorrplot)
+ggcorrplot(t(d$r), show.legend = T, 
+           p.mat = t(d$p.adj), digits = 2,  sig.level = 0.05,insig = 'blank',lab = T)
+
+sss <- cor.test(as.numeric(datasum["CD274",1:41]),as.numeric(datasum["CD8A",1:41]))
+sss$p.value
+sss$estimate
+
+m <- c(0,41,114,257,327,513,612)
+
+###
+cccor <- function(a,b,cutoff){
+  cc <- ""
+  pp <- ""
+  for (i in 1:(length(cutoff)-1)) {
+    a1 <- as.numeric(a[(cutoff[i]+1):(cutoff[i+1])])
+    b1 <- as.numeric(b[(cutoff[i]+1):(cutoff[i+1])])
+    cc <- c(cc,cor(a1,b1,method = "pearson"))
+    pp <- c(pp,cor.test(a1,b1,method = "pearson")$p.value)
+
+  }
+  cc <- cc[-1]
+  cc <- as.numeric(cc)
+  pp <- pp[-1]
+  pp <- as.numeric(pp)
+  tt <- data.frame(R=cc, pvalue=pp)
+  return(tt)
+}
+
+
+###
+#CD8A CD274
+#GZMB CD274
+#CD4 CD274
+#CD14 CD274
+#CD4 CTLA4
+#FOXP3 CTLA4
+#CD8A LAG3
+#GZMB LAG3
+#CD4 LAG3
+#FOXP3 LAG3
+#CD8A HAVCR2/TIM3
+#CD4 HAVCR2/TIM3
+#NCAM1 HAVCR2/TIM3
+#CD4 ICOS
+#CD8A TNFRSF9/CD137
+#GZMB TNFRSF9/CD137
+#CD4 TNFRSF9/CD137
+#FOXP3 TNFRSF9/CD137
+#CD8A TNFRSF4/OX40
+#GZMB TNFRSF4/OX40
+#CD4 TNFRSF4/OX40
+#FOXP3 TNFRSF4/OX40
+#NCAM1 TNFRSF4/OX40
+#CD8A CD40L 
+#GZMB CD40L 
+#CD4 CD40L 
+#FOXP3 CD40L
+#NCAM1 NCR3
+#NCAM1 NCR2
+#NCAM1 CD244/2B4
+#NCAM1 KLRD1
+#NCAM1 LILRB1
+#
+#CD8A 
+#GZMB 
+#CD4 
+#FOXP3
+#NCAM1
+
+
+sig_gene <- c("CD274", "CTLA4", "LAG3","HAVCR2", "ICOS","TNFRSF9","TNFRSF4",
+              "CD40L", "NCR3", "NCR2", "CD244", "KLRD1","LILRB1")
+cell_gene <- c("CD8A", "GZMB", "CD4", "CD33", "NCAM1", "CD14")
+
+#CD33 DC
+#NCAM1 CD56 NK
+#CD14 M
+
+datasum["FOXP3",]
+
+x1 <- cccor(datasum["CD8A",], datasum["CD274",], m)
+x2 <- cccor(datasum["GZMB",], datasum["CD274",], m)
+x3 <- cccor(datasum["CD4",], datasum["CD274",], m)
+x4 <- cccor(datasum["CD14",], datasum["CD274",], m)
+
+x5 <- cccor(datasum["CD4",], datasum["CTLA4",], m)
+x6 <- cccor(datasum["FOXP3",], datasum["CTLA4",], m)
+
+x7 <- cccor(datasum["CD8A",], datasum["LAG3",], m)
+x8 <- cccor(datasum["GZMB",], datasum["LAG3",], m)
+x9 <- cccor(datasum["CD4",], datasum["LAG3",], m)
+x10 <- cccor(datasum["FOXP3",], datasum["LAG3",], m)
+
+x11 <- cccor(datasum["CD8A",], datasum["HAVCR2",], m)
+x12 <- cccor(datasum["CD4",], datasum["HAVCR2",], m)
+x13 <- cccor(datasum["NCAM1",], datasum["HAVCR2",], m)
+
+x14 <- cccor(datasum["CD4",], datasum["ICOS",], m)
+
+x15 <- cccor(datasum["CD8A",], datasum["TNFRSF9",], m)
+x16 <- cccor(datasum["GZMB",], datasum["TNFRSF9",], m)
+x17 <- cccor(datasum["CD4",], datasum["TNFRSF9",], m)
+x18 <- cccor(datasum["FOXP3",], datasum["TNFRSF9",], m)
+
+x19 <- cccor(datasum["CD8A",], datasum["TNFRSF4",], m)
+x20 <- cccor(datasum["GZMB",], datasum["TNFRSF4",], m)
+x21 <- cccor(datasum["CD4",], datasum["TNFRSF4",], m)
+x22 <- cccor(datasum["FOXP3",], datasum["TNFRSF4",], m)
+x23 <- cccor(datasum["NCAM1",], datasum["TNFRSF4",], m)
+
+x24 <- cccor(datasum["CD8A",], datasum["CD40L",], m)
+x25 <- cccor(datasum["GZMB",], datasum["CD40L",], m)
+x26 <- cccor(datasum["CD4",], datasum["CD40L",], m)
+x27 <- cccor(datasum["FOXP3",], datasum["CD40L",], m)
+
+x28 <- cccor(datasum["NCAM1",], datasum["NCR3",], m)
+x29 <- cccor(datasum["NCAM1",], datasum["NCR2",], m)
+x30 <- cccor(datasum["NCAM1",], datasum["CD244",], m)
+x31 <- cccor(datasum["NCAM1",], datasum["KLRD1",], m)
+x32 <- cccor(datasum["NCAM1",], datasum["LILRB1",], m)
+
+xtt <- rbind(x1,x2)
+xtt <- rbind(xtt,x3)
+xtt <- rbind(xtt,x4)
+xtt <- rbind(xtt,x5)
+xtt <- rbind(xtt,x6)
+xtt <- rbind(xtt,x7)
+xtt <- rbind(xtt,x8)
+xtt <- rbind(xtt,x9)
+xtt <- rbind(xtt,x10)
+xtt <- rbind(xtt,x11)
+xtt <- rbind(xtt,x12)
+xtt <- rbind(xtt,x13)
+xtt <- rbind(xtt,x14)
+xtt <- rbind(xtt,x15)
+xtt <- rbind(xtt,x16)
+xtt <- rbind(xtt,x17)
+xtt <- rbind(xtt,x18)
+xtt <- rbind(xtt,x19)
+xtt <- rbind(xtt,x20)
+xtt <- rbind(xtt,x21)
+xtt <- rbind(xtt,x22)
+xtt <- rbind(xtt,x23)
+xtt <- rbind(xtt,x24)
+xtt <- rbind(xtt,x25)
+xtt <- rbind(xtt,x26)
+xtt <- rbind(xtt,x27)
+xtt <- rbind(xtt,x28)
+xtt <- rbind(xtt,x29)
+xtt <- rbind(xtt,x30)
+xtt <- rbind(xtt,x31)
+xtt <- rbind(xtt,x32)
+
+xtt$Pairs <- c( rep("CD8A|PD-1",6),  rep("GZMB|PD-1",6),   rep("CD4|PD-1",6),rep("CD14|PD-1",6)
+               ,rep("CD4|CTLA4",6),  rep("FOXP3|CTLA4",6)
+               ,rep("CD8A|LAG3",6),  rep("GZMB|LAG3",6),   rep("CD4|LAG3",6),rep("FOXP3|LAG3",6),
+                rep("CD8A|HAVCR2/TIM3",6),rep("CD4|HAVCR2/TIM3",6),  rep("CD56|HAVCR2/TIM3",6)
+               ,rep("CD4|ICOS",6)
+               ,rep("CD8A|TNFRSF9/CD137",6),rep("GZMB|TNFRSF9/CD137",6),rep("CD4|TNFRSF9/CD137",6),rep("FOXP3|TNFRSF9/CD137",6)
+               ,rep("CD8A|TNFRSF4/OX40",6),rep("GZMB|TNFRSF4/OX40",6),rep("CD4|TNFRSF4/OX40",6),rep("FOXP3|TNFRSF4/OX40",6),rep("CD56|TNFRSF4/OX40",6)
+               ,rep("CD8A|CD40L",6),  rep("GZMB|CD40L",6),  rep("CD4|CD40L",6),rep("FOXP3|CD40L",6),
+                rep("CD56|NCR3",6),       rep("CD56|NCR2",6),       rep("CD56|CD244/2B4",6),    rep("CD56|KLRD1/CD94",6), rep("CD56|LILRB1/LIR1",6))
+
+xtt$MSOP <- c(rep(c("MS1", "MS2", "MS3", "MS4", "MS5", "MS6"),32))
+
+write.table(xtt, "CorMSOP-immunecell.txt", sep = "\t", quote = F)
+
+
+library(pheatmap)
+library(scatterplot3d)
+library(RColorBrewer)
+library(ggplot2)
+###df <- log2(total1+1)
+df <- xtt
+display.brewer.all()
+colours0 <- brewer.pal(3, 'RdYlBu')
+
+annotation_row = xtt$MSOP
+#rownames(df)[4] <- "Fresh Frozen/FFPE"
+#rownames(df)[5] <- "Tumor or Normal"
+
+library(ggplot2)
+library(ggtree)
+library(aplot)
+library(tidyr)
+
+p <- as.data.frame(df)
+p1 <- p
+p1$R
+p1$pvalue
+p1$Pairs
+p1$MSOP
+
+p1[p1$pvalue>=0.05,]$R <- "0"
+
+p1 <- p1[p1$pvalue < 0.05,] 
+
+p1$R<0
+
+p1 <- p1[p1$R>0,]
+
+p1$Pairs <- factor(1:length(p1$Pairs), labels = p1$Pairs)
+class(p1$R)
+p1$R <- as.numeric(p1$R)
+class(p1$pvalue)
+
+pp <- ggplot(p1,aes(Pairs, MSOP))+
+  geom_point(aes(size=R,color=-1*log10(pvalue)))+
+  #geom_point(aes(color=R),shape=16)+
+  theme_grey(base_size = 15)+
+  #labs(x="",y="")+
+  labs(
+    color=expression(-log[10](P.value)),
+    size="R",
+    x="",
+    y="",
+    # title="Pathway enrichment")
+  )+
+  scale_colour_gradient(low="#A1CD88",high="#BD6479")+
+  scale_size_continuous(range = c(2,6))+
+  guides(fill=guide_legend(title = "-log[10](P.value)",keywidth = unit(0.6, "cm"), keyheight = unit(0.6, "cm")),
+         size=guide_legend(override.aes = list(shape = 21),title = "R",keywidth = unit(0.5, "cm"), keyheight = unit(0.5, "cm"))
+  )+
+  #scale_fill_manual(values = colorRampPalette(c("#A1CD88", "white", "#BD6479"))(100))+ 
+  theme(#legend.position = "none",
+        axis.text = element_text(colour = "black"),
+        axis.text.x = element_text(angle = 45,hjust=1,face = "bold"),
+        axis.text.y = element_text(face = "bold"),
+        axis.ticks = element_blank(), 
+        panel.background = element_blank(),
+        panel.border = element_rect(color="black",
+                                    fill = "transparent"),
+        legend.key = element_blank()
+        )
+
+pp
+
+###########################################################################################
+library("vioplot")
+
+data1 <- as.data.frame(t(datasum[sig_gene,]))
+
+data1$group <- factor(paste("MS", pheno$cluster6, sep = ""))
+
+vioplot(data1[data1$group=="MS1",1],
+        data1[data1$group=="MS2",1],
+        data1[data1$group=="MS3",1],
+        data1[data1$group=="MS4",1],
+        data1[data1$group=="MS5",1],
+        data1[data1$group=="MS6",1],
+        
+        data1[data1$group=="MS1",2],
+        data1[data1$group=="MS2",2],
+        data1[data1$group=="MS3",2],
+        data1[data1$group=="MS4",2],
+        data1[data1$group=="MS5",2],
+        data1[data1$group=="MS6",2],
+        
+        data1[data1$group=="MS1",3],
+        data1[data1$group=="MS2",3],
+        data1[data1$group=="MS3",3],
+        data1[data1$group=="MS4",3],
+        data1[data1$group=="MS5",3],
+        data1[data1$group=="MS6",3],
+        
+        data1[data1$group=="MS1",4],
+        data1[data1$group=="MS2",4],
+        data1[data1$group=="MS3",4],
+        data1[data1$group=="MS4",4],
+        data1[data1$group=="MS5",4],
+        data1[data1$group=="MS6",4],
+        
+        data1[data1$group=="MS1",5],
+        data1[data1$group=="MS2",5],
+        data1[data1$group=="MS3",5],
+        data1[data1$group=="MS4",5],
+        data1[data1$group=="MS5",5],
+        data1[data1$group=="MS6",5],
+        
+        data1[data1$group=="MS1",6],
+        data1[data1$group=="MS2",6],
+        data1[data1$group=="MS3",6],
+        data1[data1$group=="MS4",6],
+        data1[data1$group=="MS5",6],
+        data1[data1$group=="MS6",6],
+        
+        data1[data1$group=="MS1",7],
+        data1[data1$group=="MS2",7],
+        data1[data1$group=="MS3",7],
+        data1[data1$group=="MS4",7],
+        data1[data1$group=="MS5",7],
+        data1[data1$group=="MS6",7],
+        
+        data1[data1$group=="MS1",8],
+        data1[data1$group=="MS2",8],
+        data1[data1$group=="MS3",8],
+        data1[data1$group=="MS4",8],
+        data1[data1$group=="MS5",8],
+        data1[data1$group=="MS6",8],
+        
+        data1[data1$group=="MS1",9],
+        data1[data1$group=="MS2",9],
+        data1[data1$group=="MS3",9],
+        data1[data1$group=="MS4",9],
+        data1[data1$group=="MS5",9],
+        data1[data1$group=="MS6",9],
+        
+        data1[data1$group=="MS1",10],
+        data1[data1$group=="MS2",10],
+        data1[data1$group=="MS3",10],
+        data1[data1$group=="MS4",10],
+        data1[data1$group=="MS5",10],
+        data1[data1$group=="MS6",10],
+        
+        data1[data1$group=="MS1",11],
+        data1[data1$group=="MS2",11],
+        data1[data1$group=="MS3",11],
+        data1[data1$group=="MS4",11],
+        data1[data1$group=="MS5",11],
+        data1[data1$group=="MS6",11],
+        
+        data1[data1$group=="MS1",12],
+        data1[data1$group=="MS2",12],
+        data1[data1$group=="MS3",12],
+        data1[data1$group=="MS4",12],
+        data1[data1$group=="MS5",12],
+        data1[data1$group=="MS6",12],
+        
+        data1[data1$group=="MS1",13],
+        data1[data1$group=="MS2",13],
+        data1[data1$group=="MS3",13],
+        data1[data1$group=="MS4",13],
+        data1[data1$group=="MS5",13],
+        data1[data1$group=="MS6",13])
+
+x=c(0:5)
+y=c(0:5)
+plot(x, y, xlim=c(0,77),xlab='',ylab='Expression Level'
+     ,main=''
+     , ylim=c(min(data1[,1:13]),max(data1[,1:13])+1),pch=21,col='white',xaxt="n")
+for(i in 1:13){
+  MS1=data1[data1$group=="MS1",i]
+  MS2=data1[data1$group=="MS2",i]
+  MS3=data1[data1$group=="MS3",i]
+  MS4=data1[data1$group=="MS4",i]
+  MS5=data1[data1$group=="MS5",i]
+  MS6=data1[data1$group=="MS6",i]
+  
+  #c("#51C7BB", "#DE406E")
+  vioplot(add = T,col = '#00468B',MS1,at=6*(i-1),lty=1)
+  vioplot(add = T,col = '#ED0000',MS2,at=6*(i-1)+1,lty=1)
+  vioplot(add = T,col = '#42B540',MS3,at=6*(i-1)+2,lty=1)
+  vioplot(add = T,col = '#0099B4',MS4,at=6*(i-1)+3,lty=1)
+  vioplot(add = T,col = '#925E9F',MS5,at=6*(i-1)+4,lty=1)
+  vioplot(add = T,col = '#FDAF91',MS6,at=6*(i-1)+5,lty=1)
+  
+  #p=round(wilcox.test(basal,noBasal)$p.value,3)#save<-.001
+  p=round(summary(aov(data1[,i]~data1$group,data = data1))[[1]][[1,"Pr(>F)"]],3)
+  
+  mx=max(c(MS1,MS2,MS3,MS4,MS5,MS6))
+  lines(c(x=6*(i-1)+0.2,x=6*(i-1)+4.8),c(mx+0.15,mx+0.15))
+  text(x=6*(i-1)+2.5,y=mx+0.3,labels=ifelse(p==0,paste0("p<0.001"),paste0("p=",p)),cex = 0.5)
+}
+
+
+MS1=data1[data1$group=="MS1",1]
+MS2=data1[data1$group=="MS2",1]
+MS3=data1[data1$group=="MS3",1]
+MS4=data1[data1$group=="MS4",1]
+MS5=data1[data1$group=="MS5",1]
+MS6=data1[data1$group=="MS6",1]
+
+aaaa <- aov(data1[,5]~data1$group,data = data1)
+aaaa[[1]][5][1,1]
+bbbb <- summary(aaaa)
+
+round(summary(aov(data1[,5]~data1$group,data = data1))[[1]][[1,"Pr(>F)"]],3)
+
+summary(aaaa)[[1]][[1,"Pr(>F)"]]
+
+
+#axis(side=1, at = c(0,1,3,4,6,7,9,10), labels = F, tick = TRUE)
+#text(c(0,1,3,4,6,7,9,10),rep(par("usr")[3]-0.7,8),xpd = NA,cex = 0.8
+#     ,labels=rep(c('Tumor','Normal'),4),srt = 45,adj=1)
+text((c(0:12)*6+2.5),rep(par("usr")[3]-0.3,8),xpd = T
+     ,labels=gsub("\\.", " ",colnames(data1)[1:13]),
+     #cex = 0.54,srt = 45,adj=1,
+     font = 2)
+
+
+save.image(file = "ssgsea220206.Rdata")
+
+###
+#write.table(ph1,"icgc-220206.txt",sep = "\t", quote = F)

@@ -1,0 +1,47 @@
+rm(list=ls())
+setwd("F:\\PDAC-Results\\TCGA")
+tcgadata <- read.table("IS-TCGA-TPM-181-T177N4-1.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = FALSE)  
+ptcgadata <- read.table("IP-TCGA-TPM-181-T177N4-1.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = FALSE)
+ph1 <- read.table("tcgac6type.txt", sep = "\t", quote = "\"'", header = T)
+
+data <- tcgadata[,rownames(ph1)]
+library(ggplot2)
+math <- read.table("mutation-tb-tcga-137-0624.txt", sep = "\t", quote = "\"'")
+math$C6Type <- factor(math$C6Type, labels = c("MS1","MS2","MS3","MS4","MS5","MS6"))
+class(math$C6Type)
+
+#p1 <- ggplot()
+
+
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+library(ggsci)
+# create a dataset
+data <- data.frame(
+  name=c( rep("A",500), rep("B",500), rep("B",500), rep("C",20), rep('D', 100)  ),
+  value=c( rnorm(500, 10, 5), rnorm(500, 13, 1), rnorm(500, 18, 1), rnorm(20, 25, 4), rnorm(100, 12, 1) )
+)
+
+math$MATH
+math$C6Type
+
+cols <- pal_lancet("lanonc", alpha = 0.75)(6)
+# Plot
+math %>%
+  ggplot( aes(x=C6Type, y=MATH, fill=C6Type)) +
+  geom_boxplot() +
+#  scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+  scale_fill_manual(values = cols)+
+  geom_jitter(color="black", size=0.4, alpha=0.9) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=16,hjust = 0.5)
+  ) +
+  ggtitle("Mutant-allele tumor heterogeneity in MSOP Types") +
+  labs(x = "", y = "MATH Level")
+
+
+
+

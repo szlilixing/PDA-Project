@@ -1,0 +1,49 @@
+path
+userpath('F:\T1220\metlab')
+
+af = load('Measures-Aftercombat-845.txt')
+be = load('Measures-Beforecombat-845.txt')
+
+databe = be(6,:)
+dataaf = af(6,:)
+
+hold on
+h = cdfplot(databe)
+h1 = cdfplot(dataaf)
+lims = (h.XData > -1) & (h.XData < 1)
+trapz(h.XData(lims),h.YData(lims))
+lims1 = (h1.XData > -1) & (h1.XData < 1)
+trapz(h1.XData(lims1),h1.YData(lims1))
+t = trapz(h.XData(lims),h.YData(lims)) - trapz(h1.XData(lims1),h1.YData(lims1))
+
+AreaECDFs(databe, dataaf);
+
+%split datasets into various corhorts
+M = [0,33,60,105,133,149,267,280,589,625,650,845]
+
+ts = 0
+cohortnumber = 11
+for i = 2:(cohortnumber)
+    for j = (i+1):(cohortnumber+1)
+       ts = ts + 1
+       becdf(ts) = AreaECDFs(be(5,(M(i-1)+1):(M(i))), be(5,(M(j-1)+1):(M(j))))
+       afcdf(ts) = AreaECDFs(af(5,(M(i-1)+1):(M(i))), af(5,(M(j-1)+1):(M(j))))
+       becdfsd(ts) = AreaECDFs(be(6,(M(i-1)+1):(M(i))), be(6,(M(j-1)+1):(M(j))))
+       afcdfsd(ts) = AreaECDFs(af(6,(M(i-1)+1):(M(i))), af(6,(M(j-1)+1):(M(j))))
+    end 
+end
+
+CDFtotal = [becdf;afcdf;becdfsd;afcdfsd]
+
+
+####################################################################################
+function ECDFs = AreaECDFs(databe, dataaf)
+hold on
+h = cdfplot(databe)
+h1 = cdfplot(dataaf)
+lims = (h.XData > -1) & (h.XData < 1)
+trapz(h.XData(lims),h.YData(lims))
+lims1 = (h1.XData > -1) & (h1.XData < 1)
+trapz(h1.XData(lims1),h1.YData(lims1))
+ECDFs = trapz(h.XData(lims),h.YData(lims)) - trapz(h1.XData(lims1),h1.YData(lims1))
+end

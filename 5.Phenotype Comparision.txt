@@ -1,0 +1,592 @@
+rm(list = ls())  ## 魔幻操作，一键清空~
+setwd("F:\\T1220\\Phenotypecompares")
+data <- read.table("CC2-AI-Z-Tumor-T845-1-1220.txt",sep = "\t", quote = "\"'",header = T)
+pheno <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'",header = T)
+
+###
+###Moffitt, 2 tumor types & Stroma types
+###Methods: abstracting features of 4 classes and doing concensusing clusters of samples according to selected genes
+###Moffit 1:tumor types  1:Basal_like genes 796 genes; 2:Classical 1012 genes
+###Moffit 2:Stroma type 1:Activated Stroma 912 genes; 2:normal stroma 1067 genes
+sg <- read.table("MoffitGenes.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = F)
+datas <- data[rownames(data)%in%as.character(sg$symbol),]
+rownames(sg) <- sg$symbol
+ssg <- sg[rownames(datas),]
+
+ssg <- ssg[order(ssg$F6_BasalLike,decreasing = T),]
+BasalLike <- ssg[ssg$factor%in%"6",]
+BasalLike25 <- BasalLike$symbol[1:100] 
+
+ssg <- ssg[order(ssg$F8_Classical,decreasing = T),]
+Classical <- ssg[ssg$factor%in%"8",]
+Classical25 <- Classical$symbol[1:100]
+
+ssg <- ssg[order(ssg$F5_ActivatedStroma,decreasing = T),]
+ActivatedStroma <- ssg[ssg$factor%in%"5",]
+ActivatedStroma25 <- ActivatedStroma$symbol[1:100]
+
+ssg <- ssg[order(ssg$F13_NormalStroma,decreasing = T),]
+NormalStroma <- ssg[ssg$factor%in%"13",]
+NormalStroma25 <- NormalStroma$symbol[1:100]
+
+tumortype <- c(BasalLike25,Classical25)
+stromatype <- c(ActivatedStroma25,NormalStroma25)
+totalgenes <- c(tumortype, stromatype)
+
+
+datas <- data[totalgenes,]
+
+###Consensus Cluster
+tdata <- datas[1:200,]
+sdata <- datas[201:400,]
+
+x1 <- ""
+x1 <- tdata
+x1 <- scale(tdata)
+
+x2 <- ""
+x2 <- sdata
+x2 <- scale(sdata)
+#install.packages("tm")
+#library("tm")
+library(cluster)
+
+#d1 <- dissimilarity(x1, method = "pearson")
+d1 <- dist(t(x1), method = "euclidean") # distance matrix
+fit1 <- hclust(d1, method="ward.D2") 
+plot(fit1,  cex = .5) # normal hcluster dendrogram
+groups1 <- cutree(fit1, k=2) # cut tree into 3 clusters
+#draw dendogram with red borders around  the 3 clusters 
+rect.hclust(fit1, k=2, border="red")
+pheno$Moffit1 <- groups1
+ 
+d2 <- dist(t(x2), method = "euclidean") # distance matrix
+fit2 <- hclust(d2, method="ward.D2") 
+plot(fit2,  cex = .5) # normal hcluster dendrogram
+groups2 <- cutree(fit2, k=2) # cut tree into 3 clusters
+#draw dendogram with red borders around  the 3 clusters 
+rect.hclust(fit2, k=2, border="red")
+pheno$Moffit2 <- groups2
+
+###Heatmap
+library(pheatmap)
+###First, calculate the mean and standard deviation of each gene. 
+datasum <- "" 
+datasum <- as.data.frame(sdata)
+datasum$mean <- apply(datasum[,1:845], 1, mean, na.rm=T) 
+datasum$SD <- apply(datasum[,1:845], 1, sd, na.rm=T) 
+datasum$mean[]
+###Then, for each sample, calculate the expression level as (gene A expression level of sample X – mean value of gene A) / (standard deviation of gene A). 
+###Finally, due with the outliners by set a cutoff at 3, which means those values > 3 or < -3 be limited as 3 or -3.
+for (i in 1:845) {
+  for (j in 1:200) {
+    datasum[j,i] <- (datasum[j,i]-datasum$mean[j])/(datasum$SD[j])
+    if(datasum[j,i] > 3){datasum[j,i] <- 3}
+    if(datasum[j,i] < -3){datasum[j,i] <- -3}
+  }
+}
+
+#datatumor <- datasum
+
+datasum$mean <- NULL
+datasum$SD <- NULL
+datasum <- rbind(datasum,pheno$Moffit2)
+datasum <- datasum[,order(datasum[201,])]
+datasum[201,433]
+
+datasum <- datasum[1:200,]
+annotation_col = data.frame( Mixture = c(rep("ActivatedStroma", 433),rep("NormalStroma",412)) )
+#c(rep("One", 288),rep("Two",557)) )c(rep("One", 577),rep("Two",268)) )
+##rep("ActivatedStroma", 288),rep("NormalStroma",557)) )c(rep("BasalLike", 275),rep("Classical",268)) )
+annotation_col$Mixture <- as.factor(annotation_col$Mixture)
+rownames(annotation_col) <- colnames(datasum)
+
+library(pheatmap)
+###df <- log2(total1+1)
+df <- datasum
+#breaks
+##dd <- log2(datasum+1)
+
+bk <- c(seq(-3,-0.1,by=0.01),seq(0,3,by=0.01))
+###scale= "row", 
+ann_colors = list(Mixture = c(First = "#F34800", Second = "#00447E"))
+p1<-pheatmap(df,method = "pearson", cluster_rows=F, cluster_cols=F,
+             color = colorRampPalette(c("navy", "white", "firebrick3"))(100),
+             show_colnames=F,show_rownames = F, annotation_col = annotation_col,gaps_col = 433,gaps_row = 100)
+p1
+dev.off()
+p1
+
+save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+save_pheatmap_pdf(p1, "Moffitsstroma16.pdf")
+
+write.table(pheno,"phenotype-moffit-0216.txt", sep = "\t", quote = F)
+
+save.image(file = "Phenotype0216.Rdata")
+
+###
+###Bailey, 4 PDAC types
+###Squamous, ADEX, Pancreatic progenitor, Immunogenic
+###Methods: using ICGC data cohort as classifying system based on means of all genes
+###deduplicated using Max of probes
+##
+setwd("F:\\T1220\\Phenotypecompares\\Bailey")
+baileydata <- read.table("Bailey-ICGC-all-genes.txt", sep = "\t", quote = "\"'", header = T)
+baileypheno <- read.table("Bailey-ICGC-clusters.txt", sep = "\t", quote = "\"'", header = T)
+rownames(baileydata)[1]
+###ENSG to HUGO
+###Annotation
+library(org.Hs.eg.db)
+g2s=toTable(org.Hs.egSYMBOL)
+g2e=toTable(org.Hs.egENSEMBL)
+baileydata$ensembl_id <- rownames(baileydata)
+b=merge(baileydata,g2e,by="ensembl_id",all.x=T)
+d=merge(b,g2s,by="gene_id",all.x=T)
+d=d[order(d$gene_id),]
+
+###Remove duplicate
+exprSet_symbol <- d 
+exprSet_symbol$gene_id <- NULL
+exprSet_symbol$ensembl_id <- NULL
+exprSet_symbol <- aggregate(x = exprSet_symbol,by = list(exprSet_symbol$symbol), FUN = max)
+
+rownames(exprSet_symbol) <- exprSet_symbol$symbol
+exprSet_symbol$symbol <- NULL
+exprSet_symbol$Group.1 <- NULL
+write.table(exprSet_symbol, "Bailey-ICGC-HUGO-data.txt", sep = "\t", quote = F)
+
+###Calculating mean gene expression of 4 types
+baileypheno <- baileypheno[order(baileypheno$membership.ordered),]
+sum(baileypheno[,2]%in%"4")
+### 1:16; 2:25; 3:25; 4:30;
+
+bdata <- exprSet_symbol[,as.character(baileypheno$icgc_id)]
+
+btp <- ""
+btp <- matrix(7777777,16119,4)
+colnames(btp) <- c("ADEX","Immunogenic","Squamous","Pancreatic progenitor")
+rownames(btp) <- rownames(bdata)
+bm <- c(0,16,41,66,96)
+btp[,1] <- apply(as.matrix(bdata[,1:16]), 1, mean)
+btp[,2] <- apply(as.matrix(bdata[,17:41]), 1, mean)
+btp[,3] <- apply(as.matrix(bdata[,42:66]), 1, mean)
+btp[,4] <- apply(as.matrix(bdata[,67:96]), 1, mean)
+
+write.table(btp,"bailey-icgc-cenoids-all-genes-classifier.txt", sep = "\t", quote = F)
+
+btp <- as.data.frame(btp) 
+d1 <- data[as.character(rownames(btp)),]
+d1 <- na.omit(d1)
+d2 <- btp[as.character(rownames(d1)),]
+
+###it's impossible to calculate correlation between two samples with more than 1000 features
+###thus we decided to selecetd genes among DEGs between each cluster and the rest.
+###criteria: LFC:LFC > 1; P.adj < 0.05;
+###"ADEX",208genes,"Immunogenic",235genes,"Squamous",502genes,"Pancreatic progenitor",181genes
+###top100
+adex <- read.table("ADEX-208-LFC1-P005.txt", sep = "\t", quote = "\"'", header = F, stringsAsFactors = F)
+Immu <- read.table("Immu-235-LFC1-P005.txt", sep = "\t", quote = "\"'", header = F, stringsAsFactors = F)
+Squa <- read.table("Squa-502-LFC1-P005.txt", sep = "\t", quote = "\"'", header = F, stringsAsFactors = F)
+Prog <- read.table("Prog-181-LFC1-P005.txt", sep = "\t", quote = "\"'", header = F, stringsAsFactors = F)
+
+###criteria: LFC:LFC > 0; P.adj < 0.05;
+###"ADEX",242genes,"Immunogenic",370genes,"Squamous",1061genes,"Pancreatic progenitor",274genes
+###top100
+adex <- read.table("ADEX-242-LFC0-P005.txt", sep = "\t", quote = "\"'", header = F, stringsAsFactors = F)
+Immu <- read.table("Immu-370-LFC0-P005.txt", sep = "\t", quote = "\"'", header = F, stringsAsFactors = F)
+Squa <- read.table("Squa-1061-LFC0-P005.txt", sep = "\t", quote = "\"'", header = F, stringsAsFactors = F)
+Prog <- read.table("Prog-274-LFC0-P005.txt", sep = "\t", quote = "\"'", header = F, stringsAsFactors = F)
+
+
+dd1 <- d1[adex$V1,]
+dd2 <- d1[Immu$V1,]
+dd3 <- d1[Squa$V1,]
+dd4 <- d1[Prog$V1,]
+dd1 <- na.omit(dd1)
+dd2 <- na.omit(dd2)
+dd3 <- na.omit(dd3)
+dd4 <- na.omit(dd4)
+
+data2["KCNE31",]
+
+dd1 <- dd1[1:100,]
+dd2 <- dd2[1:100,]
+dd3 <- dd3[1:100,]
+dd4 <- dd4[1:100,]
+
+###compared to other classifier
+cgenes <- c(rownames(dd1), rownames(dd2), rownames(dd3), rownames(dd4))
+cgenes <- cgenes[!duplicated(cgenes)]
+data2 <- d1[cgenes,]
+cluster <- d2[rownames(data2),]
+
+gene_name1<-c()
+gene_name2<-c()
+cor_r<-c()
+pvalue<-c()
+
+for (i in 1:ncol(data2)){
+  for (r in 1:ncol(cluster)){
+    g1=colnames(data2)[i]
+    g2=colnames(cluster)[r]
+    c_r=cor(as.numeric(data2[,i]),as.numeric(cluster[,r]),method="spearman")
+    p=cor.test(as.numeric(data2[,i]),as.numeric(cluster[,r]),method ="spearman")[[3]]
+    gene_name1=c(gene_name1,g1)
+    gene_name2=c(gene_name2,g2)
+    cor_r=c(cor_r,c_r)
+    pvalue=c(pvalue,p)
+  }
+}
+
+data_cor<-data.frame(gene_name1,gene_name2,cor_r,pvalue)
+
+m <- ""
+n <- ""
+test <- data_cor
+t <- test[order(test[,1], test[,3],decreasing = T),]
+tt <- t[seq(1,3380,by=4),]
+rownames(tt) <- tt$gene_name1
+o <- colnames(data)
+tt <- tt[o,]
+write.table(tt, "Cluster_correlation_T845_4Bailey-100genes-types.txt", sep = "\t", quote = F)
+
+
+library(pheatmap)
+###First, calculate the mean and standard deviation of each gene. 
+datasum <- "" 
+datasum <- data2
+#datasum <- tdata
+datasum$mean <- apply(datasum[,1:845], 1, mean, na.rm=T) 
+datasum$SD <- apply(datasum[,1:845], 1, sd, na.rm=T) 
+datasum$mean[]
+###Then, for each sample, calculate the expression level as (gene A expression level of sample X – mean value of gene A) / (standard deviation of gene A). 
+###Finally, due with the outliners by set a cutoff at 3, which means those values > 3 or < -3 be limited as 3 or -3.
+for (i in 1:845) {
+  for (j in 1:397) {
+    datasum[j,i] <- (datasum[j,i]-datasum$mean[j])/(datasum$SD[j])
+    if(datasum[j,i] > 3){datasum[j,i] <- 3}
+    if(datasum[j,i] < -3){datasum[j,i] <- -3}
+  }
+}
+
+#datatumor <- datasum
+
+datasum$mean <- NULL
+datasum$SD <- NULL
+datasum <- rbind(datasum,pheno0218$Bailey2)
+pheno0218$Bailey2
+datasum <- datasum[,order(datasum[398,])]
+datasum[398,433]
+datasum[398,582]
+datasum[398,737]
+
+datasum <- datasum[1:397,]
+annotation_col = data.frame( Mixture = c(rep("ADEX", 433),rep("Immunogenic", 149),rep("Pancreatic progenitor", 155),rep("Squamous", 108)))
+#annotation_col = data.frame( Mixture = c(rep("A", 436),rep("B", 56),rep("C", 353)))
+#annotation_col = data.frame( Mixture = c(rep("A", 388),rep("B", 199),rep("C", 258)))
+##rep("ActivatedStroma", 288),rep("NormalStroma",557)) )c(rep("BasalLike", 275),rep("Classical",268)) )
+annotation_col$Mixture <- as.factor(annotation_col$Mixture)
+rownames(annotation_col) <- colnames(datasum)
+
+library(pheatmap)
+###df <- log2(total1+1)
+df <- datasum
+#breaks
+##dd <- log2(datasum+1)
+
+bk <- c(seq(-3,-0.1,by=0.01),seq(0,3,by=0.01))
+###scale= "row", 
+ann_colors = list(Mixture = c(First = "#F34800", Second = "#00447E"))
+p1<-pheatmap(df,method = "pearson", cluster_rows=F, cluster_cols=F,
+             color = colorRampPalette(c("navy", "white", "firebrick3"))(100),
+             show_colnames=F,show_rownames = F, annotation_col = annotation_col,gaps_col = c(433,582,737))#,gaps_row = c(100,200,300))
+p1
+dev.off()
+p1
+
+save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+save_pheatmap_pdf(p1, "Bailey-397genes-4types.pdf")
+
+
+
+
+
+
+
+####Collisson
+###Classical PDA
+###Exocrine-like PDA
+###QM-PDA
+#median center normalization
+#2015-07-28 ~ ADMIN
+## by row
+medianCenter <- function(y){
+  y <- apply(y, 1, function(x){x-median(x)})
+  scale(t(y), center=FALSE)
+}
+
+## by col
+medianCenter <- function(y){
+  y <- apply(y, 2, function(x){x-median(x)})
+  scale(y, center=FALSE)
+}
+
+setwd("F:\\T1220\\Phenotypecompares\\Collisson")
+codata <- apply(as.matrix(data), 2, function(x){(x-min(x))/(max(x)-min(x))})
+codata <- apply(codata, 1, function(x){x-median(x)})
+codata <- scale((codata), center=FALSE)
+codata <- as.data.frame(t(codata))
+
+
+cosample <- read.table("ST3-62genes-data.txt", sep = "\t", quote = "", header = T, stringsAsFactors = F)
+rownames(cosample) <- cosample$Genes
+coclass <- read.table("ST3-example.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = F)
+rownames(coclass) <- coclass$Sample.identifier
+
+scodata <- codata[cosample$Genes,] 
+scodata <- na.omit(scodata)
+scoclass <- cosample[rownames(scodata),]
+scoclass <- scoclass[,3:68]
+
+coclass <- coclass[order(coclass$Subtypes),]
+scoclass <- scoclass[,rownames(coclass)]
+coclass$Subtypes
+sum(coclass$Subtypes%in%"QM-PDA")
+###
+###Classical PDA 27
+###Exocrine-like PDA 19
+###QM-PDA 20
+ctp <- ""
+ctp <- matrix(7777777,49,3)
+colnames(ctp) <- c("Classical PDA","Exocrine-like PDA","QM-PDA")
+rownames(ctp) <- rownames(scoclass)
+#bm <- c(0,27,41,66,96)
+ctp[,1] <- apply(as.matrix(scoclass[,1:27]), 1, mean)
+ctp[,2] <- apply(as.matrix(scoclass[,28:46]), 1, mean)
+ctp[,3] <- apply(as.matrix(scoclass[,47:66]), 1, mean)
+
+###compared to other classifier
+ssdata <- data[rownames(ctp),]
+ssdata <- apply(as.matrix(ssdata), 2, function(x){(x-min(x))/(max(x)-min(x))})
+ssdata <- apply(ssdata, 1, function(x){x-median(x)})
+ssdata <- scale(t(ssdata), center=FALSE)
+ssdata <- as.data.frame(ssdata)
+
+data3 <- scodata
+cluster1 <- as.data.frame(ctp)
+
+gene_name1<-c()
+gene_name2<-c()
+cor_r<-c()
+pvalue<-c()
+
+for (i in 1:ncol(data3)){
+  for (r in 1:ncol(cluster1)){
+    g1=colnames(data3)[i]
+    g2=colnames(cluster1)[r]
+    c_r=cor(as.numeric(data3[,i]),as.numeric(cluster1[,r]),method="spearman")
+    p=cor.test(as.numeric(data3[,i]),as.numeric(cluster1[,r]),method ="spearman")[[3]]
+    gene_name1=c(gene_name1,g1)
+    gene_name2=c(gene_name2,g2)
+    cor_r=c(cor_r,c_r)
+    pvalue=c(pvalue,p)
+  }
+}
+
+data_corco<-data.frame(gene_name1,gene_name2,cor_r,pvalue)
+m <- ""
+n <- ""
+test <- data_corco
+t <- test[order(test[,1], test[,3],decreasing = T),]
+tt <- t[seq(1,2525,by=3),]
+rownames(tt) <- tt$gene_name1
+o <- colnames(data)
+tt <- tt[o,]
+write.table(tt, "Cluster_correlation_T845_4Bailey-100genes-types.txt", sep = "\t", quote = F)
+
+
+###
+###Consensus Cluster
+#tdata <- data[rownames(ctp),]
+#tdata <- scodata
+tdata <- codata[rownames(ctp),]
+s1 <- read.table("49genes.txt", sep = "\t", quote = "\"'", header = F, stringsAsFactors = F)
+tdata <- tdata[s1$V1,]
+tdata <- na.omit(tdata)
+
+x1 <- ""
+x1 <- tdata
+#x1 <- scale(tdata)
+
+#x1 <- apply(as.matrix(x1), 2, function(x){(x-min(x))/(max(x)-min(x))})
+#x1 <- apply(x1, 1, function(x){x-median(x)})
+##x1 <- scale(t(x1), center=FALSE)
+#x1 <- as.data.frame(t(x1))
+
+library(cluster)
+#d1 <- dissimilarity(x1, method = "pearson")
+d1 <- dist(t(x1), method = "euclidean") # distance matrix
+fit1 <- hclust(d1, method="ward.D2") 
+plot(fit1,  cex = .5) # normal hcluster dendrogram
+groups1 <- cutree(fit1, k=3) # cut tree into 3 clusters
+#draw dendogram with red borders around  the 3 clusters 
+rect.hclust(fit1, k=3, border="red")
+pheno$Collisson <- groups1
+
+library(pheatmap)
+###First, calculate the mean and standard deviation of each gene. 
+datasum <- "" 
+datasum <- as.data.frame(data[rownames(tdata),])
+#datasum <- tdata
+datasum$mean <- apply(datasum[,1:845], 1, mean, na.rm=T) 
+datasum$SD <- apply(datasum[,1:845], 1, sd, na.rm=T) 
+datasum$mean[]
+###Then, for each sample, calculate the expression level as (gene A expression level of sample X – mean value of gene A) / (standard deviation of gene A). 
+###Finally, due with the outliners by set a cutoff at 3, which means those values > 3 or < -3 be limited as 3 or -3.
+for (i in 1:845) {
+  for (j in 1:49) {
+    datasum[j,i] <- (datasum[j,i]-datasum$mean[j])/(datasum$SD[j])
+    if(datasum[j,i] > 3){datasum[j,i] <- 3}
+    if(datasum[j,i] < -3){datasum[j,i] <- -3}
+  }
+}
+
+#datatumor <- datasum
+
+datasum$mean <- NULL
+datasum$SD <- NULL
+datasum <- rbind(datasum,pheno$Collisson)
+datasum <- datasum[,order(datasum[50,])]
+datasum[50,436]
+datasum[50,670]
+
+datasum <- datasum[1:49,]
+annotation_col = data.frame( Mixture = c(rep("Classical", 436),rep("QM-PDA", 234),rep("Exocrine-like PDA", 175)))
+#annotation_col = data.frame( Mixture = c(rep("A", 436),rep("B", 56),rep("C", 353)))
+#annotation_col = data.frame( Mixture = c(rep("A", 388),rep("B", 199),rep("C", 258)))
+##rep("ActivatedStroma", 288),rep("NormalStroma",557)) )c(rep("BasalLike", 275),rep("Classical",268)) )
+annotation_col$Mixture <- as.factor(annotation_col$Mixture)
+rownames(annotation_col) <- colnames(datasum)
+
+library(pheatmap)
+###df <- log2(total1+1)
+df <- datasum
+#breaks
+##dd <- log2(datasum+1)
+
+bk <- c(seq(-3,-0.1,by=0.01),seq(0,3,by=0.01))
+###scale= "row", 
+ann_colors = list(Mixture = c(First = "#F34800", Second = "#00447E"))
+p1<-pheatmap(df,method = "pearson", cluster_rows=F, cluster_cols=F,
+             color = colorRampPalette(c("navy", "white", "firebrick3"))(100),
+             show_colnames=F,show_rownames = T, annotation_col = annotation_col,gaps_col = c(436,670),gaps_row = c(15,30))
+p1
+dev.off()
+p1
+
+save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+save_pheatmap_pdf(p1, "Collisson-49genes-3types.pdf")
+
+pheno0218$Collisson <- pheno$Collisson
+
+write.table(pheno0218,"phenotype-4refs-0219.txt", sep = "\t", quote = F)
+
+save.image(file = "Phenotype0219.Rdata")
+
+###Puleo 5types
+###Desnoplastic, Immune.classical,Pure.basal.like, Pure.classical , Stroma.Activated
+
+
+l <- pheno0218$gene_name2
+levels(pheno0218$gene_name2)
+library(pheatmap)
+###First, calculate the mean and standard deviation of each gene. 
+datasum <- "" 
+cluster309 <- read.table("Pan309.txt", sep = "\t", quote = "\"'", header = T, row.names = 1)
+datasum <- as.data.frame(data[rownames(cluster309),])
+datasum <- na.omit(datasum)
+datasum <- as.data.frame(datasum)
+#datasum <- tdata
+datasum$mean <- apply(datasum[,1:845], 1, mean, na.rm=T) 
+datasum$SD <- apply(datasum[,1:845], 1, sd, na.rm=T) 
+datasum$mean[]
+###Then, for each sample, calculate the expression level as (gene A expression level of sample X – mean value of gene A) / (standard deviation of gene A). 
+###Finally, due with the outliners by set a cutoff at 3, which means those values > 3 or < -3 be limited as 3 or -3.
+for (i in 1:845) {
+  for (j in 1:326) {
+    datasum[j,i] <- (datasum[j,i]-datasum$mean[j])/(datasum$SD[j])
+    if(datasum[j,i] > 3){datasum[j,i] <- 3}
+    if(datasum[j,i] < -3){datasum[j,i] <- -3}
+  }
+}
+
+#datatumor <- datasum
+
+datasum$mean <- NULL
+datasum$SD <- NULL
+datasum <- rbind(datasum,pheno$gene_name2)
+datasum <- datasum[,order(datasum[327,])]
+datasum[327,267]
+datasum[327,400]
+datasum[327,463]
+datasum[327,614]
+
+
+datasum <- datasum[1:326,]
+annotation_col = data.frame( Mixture = c(rep("Desnoplastic", 267),rep("Immune.classical", 133),rep("Pure.basal.like", 63),rep("Pure.classical", 151),rep("Stroma.Activated", 231)))
+#annotation_col = data.frame( Mixture = c(rep("A", 436),rep("B", 56),rep("C", 353)))
+#annotation_col = data.frame( Mixture = c(rep("A", 388),rep("B", 199),rep("C", 258)))
+##rep("ActivatedStroma", 288),rep("NormalStroma",557)) )c(rep("BasalLike", 275),rep("Classical",268)) )
+annotation_col$Mixture <- as.factor(annotation_col$Mixture)
+rownames(annotation_col) <- colnames(datasum)
+
+library(pheatmap)
+###df <- log2(total1+1)
+df <- datasum
+#breaks
+##dd <- log2(datasum+1)
+
+bk <- c(seq(-3,-0.1,by=0.01),seq(0,3,by=0.01))
+###scale= "row", 
+ann_colors = list(Mixture = c(First = "#F34800", Second = "#00447E"))
+p1<-pheatmap(df,method = "pearson", cluster_rows=F, cluster_cols=F,
+             color = colorRampPalette(c("navy", "white", "firebrick3"))(100),
+             show_colnames=F,show_rownames = F, annotation_col = annotation_col,gaps_col = c(267,400,463,614))
+p1
+dev.off()
+p1
+
+save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+save_pheatmap_pdf(p1, "Pan309-326genes-5types.pdf")

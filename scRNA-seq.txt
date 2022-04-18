@@ -1,0 +1,847 @@
+
+setwd("~/T1230-scRNA")
+
+library(Seurat)
+library(dplyr)
+library(patchwork)
+
+t1.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T1")
+t2.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T2")
+t3.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T3")
+t4.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T4")
+t5.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T5")
+t6.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T6")
+t7.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T7")
+t8.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T8")
+t9.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T9")
+t10.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T10")
+t11.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T11")
+t12.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T12")
+t13.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T13")
+t14.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T14")
+t15.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T15")
+t16.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T16")
+t17.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T17")
+t18.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T18")
+t19.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T19")
+t20.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T20")
+t21.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T21")
+t22.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T22")
+t23.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T23")
+t24.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/T24")
+n1.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N1")
+n2.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N2")
+n3.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N3")
+n4.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N4")
+n5.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N5")
+n6.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N6")
+n7.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N7")
+n8.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N8")
+n9.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N9")
+n10.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N10")
+n11.data <- Read10X(data.dir = "/home/pmc_307/T1230-scRNA/PDAC/N11")
+
+t1 <- CreateSeuratObject(counts = t1.data, project = "t1", min.cells = 3, min.features = 300)
+t1@meta.data$tissue <- "Tumor" 
+
+t2 <- CreateSeuratObject(counts = t2.data, project = "t2", min.cells = 3, min.features = 300)
+t2@meta.data$tissue <- "Tumor" 
+
+t3 <- CreateSeuratObject(counts = t3.data, project = "t3", min.cells = 3, min.features = 300)
+t3@meta.data$tissue <- "Tumor" 
+
+t4 <- CreateSeuratObject(counts = t4.data, project = "t4", min.cells = 3, min.features = 300)
+t4@meta.data$tissue <- "Tumor" 
+
+t5 <- CreateSeuratObject(counts = t5.data, project = "t5", min.cells = 3, min.features = 300)
+t5@meta.data$tissue <- "Tumor" 
+
+t6 <- CreateSeuratObject(counts = t6.data, project = "t6", min.cells = 3, min.features = 300)
+t6@meta.data$tissue <- "Tumor" 
+
+t7 <- CreateSeuratObject(counts = t7.data, project = "t7", min.cells = 3, min.features = 300)
+t7@meta.data$tissue <- "Tumor" 
+
+t8 <- CreateSeuratObject(counts = t8.data, project = "t8", min.cells = 3, min.features = 300)
+t8@meta.data$tissue <- "Tumor" 
+
+t9 <- CreateSeuratObject(counts = t9.data, project = "t9", min.cells = 3, min.features = 300)
+t9@meta.data$tissue <- "Tumor" 
+
+t10 <- CreateSeuratObject(counts = t10.data, project = "t10", min.cells = 3, min.features = 300)
+t10@meta.data$tissue <- "Tumor" 
+
+t11 <- CreateSeuratObject(counts = t11.data, project = "t11", min.cells = 3, min.features = 300)
+t11@meta.data$tissue <- "Tumor" 
+
+
+t12 <- CreateSeuratObject(counts = t12.data, project = "t12", min.cells = 3, min.features = 300)
+t12@meta.data$tissue <- "Tumor" 
+
+t13 <- CreateSeuratObject(counts = t13.data, project = "t13", min.cells = 3, min.features = 300)
+t13@meta.data$tissue <- "Tumor" 
+
+t14 <- CreateSeuratObject(counts = t14.data, project = "t14", min.cells = 3, min.features = 300)
+t14@meta.data$tissue <- "Tumor" 
+
+t15 <- CreateSeuratObject(counts = t15.data, project = "t15", min.cells = 3, min.features = 300)
+t15@meta.data$tissue <- "Tumor" 
+
+t16 <- CreateSeuratObject(counts = t16.data, project = "t16", min.cells = 3, min.features = 300)
+t16@meta.data$tissue <- "Tumor" 
+
+t17 <- CreateSeuratObject(counts = t17.data, project = "t17", min.cells = 3, min.features = 300)
+t17@meta.data$tissue <- "Tumor" 
+
+t18 <- CreateSeuratObject(counts = t18.data, project = "t18", min.cells = 3, min.features = 300)
+t18@meta.data$tissue <- "Tumor" 
+
+t19 <- CreateSeuratObject(counts = t19.data, project = "t19", min.cells = 3, min.features = 300)
+t19@meta.data$tissue <- "Tumor" 
+
+t20 <- CreateSeuratObject(counts = t20.data, project = "t20", min.cells = 3, min.features = 300)
+t20@meta.data$tissue <- "Tumor" 
+
+t21 <- CreateSeuratObject(counts = t21.data, project = "t21", min.cells = 3, min.features = 300)
+t21@meta.data$tissue <- "Tumor" 
+
+t22 <- CreateSeuratObject(counts = t22.data, project = "t22", min.cells = 3, min.features = 300)
+t22@meta.data$tissue <- "Tumor" 
+
+t23 <- CreateSeuratObject(counts = t23.data, project = "t23", min.cells = 3, min.features = 300)
+t23@meta.data$tissue <- "Tumor" 
+
+t24 <- CreateSeuratObject(counts = t24.data, project = "t24", min.cells = 3, min.features = 300)
+t24@meta.data$tissue <- "Tumor" 
+
+n1 <- CreateSeuratObject(counts = n1.data, project = "n1", min.cells = 3, min.features = 300)
+n1@meta.data$tissue <- "Normal" 
+
+n2 <- CreateSeuratObject(counts = n2.data, project = "n2", min.cells = 3, min.features = 300)
+n2@meta.data$tissue <- "Normal"
+
+n3 <- CreateSeuratObject(counts = n3.data, project = "n3", min.cells = 3, min.features = 300)
+n3@meta.data$tissue <- "Normal"
+
+n4 <- CreateSeuratObject(counts = n4.data, project = "n4", min.cells = 3, min.features = 300)
+n4@meta.data$tissue <- "Normal"
+
+n5 <- CreateSeuratObject(counts = n5.data, project = "n5", min.cells = 3, min.features = 300)
+n5@meta.data$tissue <- "Normal"
+
+n6 <- CreateSeuratObject(counts = n6.data, project = "n6", min.cells = 3, min.features = 300)
+n6@meta.data$tissue <- "Normal"
+
+n7 <- CreateSeuratObject(counts = n7.data, project = "n7", min.cells = 3, min.features = 300)
+n7@meta.data$tissue <- "Normal"
+
+n8 <- CreateSeuratObject(counts = n8.data, project = "n8", min.cells = 3, min.features = 300)
+n8@meta.data$tissue <- "Normal"
+
+n9 <- CreateSeuratObject(counts = n9.data, project = "n9", min.cells = 3, min.features = 300)
+n9@meta.data$tissue <- "Normal"
+
+n10 <- CreateSeuratObject(counts = n10.data, project = "n10", min.cells = 3, min.features = 300)
+n10@meta.data$tissue <- "Normal"
+
+n11 <- CreateSeuratObject(counts = n11.data, project = "n11", min.cells = 3, min.features = 300)
+n11@meta.data$tissue <- "Normal"
+save.image(file = "tempseurat.Rdata")
+
+
+ttdata <- merge(t1, t2, do.normalize=F)
+ttdata <- merge(ttdata, t3, do.normalize=F)
+ttdata <- merge(ttdata, t4, do.normalize=F)
+ttdata <- merge(ttdata, t5, do.normalize=F)
+ttdata <- merge(ttdata, t6, do.normalize=F)
+ttdata <- merge(ttdata, t7, do.normalize=F)
+ttdata <- merge(ttdata, t8, do.normalize=F)
+ttdata <- merge(ttdata, t9, do.normalize=F)
+ttdata <- merge(ttdata, t10, do.normalize=F)
+ttdata <- merge(ttdata, t11, do.normalize=F)
+ttdata <- merge(ttdata, t12, do.normalize=F)
+ttdata <- merge(ttdata, t13, do.normalize=F)
+ttdata <- merge(ttdata, t14, do.normalize=F)
+ttdata <- merge(ttdata, t15, do.normalize=F)
+ttdata <- merge(ttdata, t16, do.normalize=F)
+ttdata <- merge(ttdata, t17, do.normalize=F)
+ttdata <- merge(ttdata, t18, do.normalize=F)
+ttdata <- merge(ttdata, t19, do.normalize=F)
+ttdata <- merge(ttdata, t20, do.normalize=F)
+ttdata <- merge(ttdata, t21, do.normalize=F)
+ttdata <- merge(ttdata, t22, do.normalize=F)
+ttdata <- merge(ttdata, t23, do.normalize=F)
+ttdata <- merge(ttdata, t24, do.normalize=F)
+ttdata <- merge(ttdata, n1, do.normalize=F)
+ttdata <- merge(ttdata, n2, do.normalize=F)
+ttdata <- merge(ttdata, n3, do.normalize=F)
+ttdata <- merge(ttdata, n4, do.normalize=F)
+ttdata <- merge(ttdata, n5, do.normalize=F)
+ttdata <- merge(ttdata, n6, do.normalize=F)
+ttdata <- merge(ttdata, n7, do.normalize=F)
+ttdata <- merge(ttdata, n8, do.normalize=F)
+ttdata <- merge(ttdata, n9, do.normalize=F)
+ttdata <- merge(ttdata, n10, do.normalize=F)
+ttdata <- merge(ttdata, n11, do.normalize=F)
+
+
+save(ttdata,file = 'ttdata')
+
+
+load("ttdata")
+
+# The [[ operator can add columns to object metadata. This is a great place to stash QC stats
+ttdata[["percent.mt"]] <- PercentageFeatureSet(ttdata, pattern = "^MT-")
+# Visualize QC metrics as a violin plot
+VlnPlot(ttdata, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+# FeatureScatter is typically used to visualize feature-feature relationships, but can be used
+# for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
+
+plot1 <- FeatureScatter(ttdata, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(ttdata, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+
+normttdata <- subset(ttdata, subset = nFeature_RNA > 300 &  nFeature_RNA < 6000 & percent.mt < 10)
+
+VlnPlot(normttdata, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+plot1 <- FeatureScatter(normttdata, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(normttdata, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+
+###Normalizing the data
+#normttdata <- NormalizeData(normttdata, normalization.method = "LogNormalize", scale.factor = 10000)
+###pbmc <- NormalizeData(pbmc)
+library(sctransform)
+normttdata <- SCTransform(normttdata, vars.to.regress = "percent.mt")
+
+#Perform linear dimensional reduction
+normttdata <- RunPCA(normttdata, features = VariableFeatures(object = normttdata))
+save(normttdata,file = "normttdata0102-afterpca")
+load("normttdata0102-afterpca")
+
+#load("normttdata0102")
+### NOTE: This process can take a long time for big datasets, comment out for expediency. More
+### approximate techniques such as those implemented in ElbowPlot() can be used to reduce
+### computation time
+#normttdata <- JackStraw(normttdata, num.replicate = 100)
+#normttdata <- ScoreJackStraw(normttdata, dims = 1:20)
+#JackStrawPlot(normttdata, dims = 1:20)
+###An alternative heuristic method generates an 'Elbow plot': a ranking of principle components based on the percentage of variance explained by each one (ElbowPlot function). In this example, we can observe an 'elbow' around PC9-10, suggesting that the majority of true signal is captured in the first 10 PCs.
+ElbowPlot(normttdata,ndims = 50)
+
+###Cluster the cells
+normttdata <- FindNeighbors(normttdata, dims = 1:20)
+normttdata <- FindClusters(normttdata, algorithm = 1, resolution = 0.1)
+### Look at cluster IDs of the first 5 cells
+head(Idents(normttdata), 5)
+
+#Run non-linear dimensional reduction (UMAP/tSNE)
+###Seurat offers several non-linear dimensional reduction techniques, such as tSNE and UMAP, to visualize and explore these datasets.
+# If you haven't installed UMAP, you can do so via reticulate::py_install(packages =
+# 'umap-learn')
+#BiocManager::install("ggplot2")
+
+library(reticulate)
+py_available()
+use_python("/home/pmc_307/T1230-scRNA/yes/envs/rna/bin/python", required = T)
+py_available()
+
+#reticulate::py_install(packages ='umap-learn')
+normttdata <- RunUMAP(normttdata, dims = 1:20)
+#saveRDS(normttdata)
+# note that you can set `label = TRUE` or use the LabelClusters function to help label
+# individual clusters
+DimPlot(normttdata, reduction = "umap")
+sum(normttdata@meta.data$seurat_clusters=="9")
+
+normtissue <- subset(x = normttdata, tissue=="Normal")
+
+FeaturePlot(normttdata, features = c("RGS5"))
+DimPlot(normttdata, group.by = "tissue", reduction = "umap")
+#Finding differentially expressed features (cluster biomarkers)
+### find all markers of cluster 1
+cluster1.markers <- FindMarkers(normttdata, ident.1 = 1, min.pct = 0.25)
+head(cluster1.markers, n = 5)
+### find all markers distinguishing cluster 5 from clusters 0 and 3
+cluster5.markers <- FindMarkers(normttdata, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25)
+head(cluster5.markers, n = 5)
+# find markers for every cluster compared to all remaining cells, report only the positive ones
+#normttdata.markers <- FindAllMarkers(normttdata, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+normttdata.markers10 <- FindAllMarkers(normttdata, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+save.image(file = "0103aftrcluster35.Rdata")
+load("0103aftrcluster35.Rdata")
+save(normttdata.markers,file = "normttfata.marker0104-28clusters")
+save.image(file = "0104aftrcluster28.Rdata")
+save.image(file = "0104SLM0.1-10clusters.Rdata")
+
+write.table(normttdata.markers, "normttdata.markers-0104-28clusters.txt", sep = "\t", quote = F)
+write.table(normttdata.markers10, "normttdata.markers10-0104-10clusters.txt", sep = "\t", quote = F)
+
+temp <- normttdata.markers10
+
+#normttdata.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_logFC)
+normttdata.markers10 %>% group_by(cluster) %>% top_n(n = 2, wt = avg_logFC)
+
+m2 <- normttdata.markers10 %>% group_by(cluster) %>% top_n(n = 2, wt = avg_logFC)
+
+m100 <- normttdata.markers10 %>% group_by(cluster) %>% top_n(n = 100, wt = avg_logFC)
+top15 <- subset(normttdata.markers, cluster%in%c(15))
+
+###Seurat has several tests for differential expression which can be set with the test.use parameter (see our DE vignette for details). For example, the ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect).
+cluster1.markers <- FindMarkers(normttdata, ident.1 = 0, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster2.markers <- FindMarkers(normttdata, ident.1 = 1, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster3.markers <- FindMarkers(normttdata, ident.1 = 2, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster4.markers <- FindMarkers(normttdata, ident.1 = 3, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster5.markers <- FindMarkers(normttdata, ident.1 = 4, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster6.markers <- FindMarkers(normttdata, ident.1 = 5, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster7.markers <- FindMarkers(normttdata, ident.1 = 6, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster8.markers <- FindMarkers(normttdata, ident.1 = 7, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster9.markers <- FindMarkers(normttdata, ident.1 = 8, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster10.markers <- FindMarkers(normttdata, ident.1 =9, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+
+write.table(cluster1.markers, "cluster1.markers.txt",sep = "\t", quote = F)
+write.table(cluster2.markers, "cluster2.markers.txt",sep = "\t", quote = F)
+write.table(cluster3.markers, "cluster3.markers.txt",sep = "\t", quote = F)
+write.table(cluster4.markers, "cluster4.markers.txt",sep = "\t", quote = F)
+write.table(cluster5.markers, "cluster5.markers.txt",sep = "\t", quote = F)
+write.table(cluster6.markers, "cluster6.markers.txt",sep = "\t", quote = F)
+write.table(cluster7.markers, "cluster7.markers.txt",sep = "\t", quote = F)
+write.table(cluster8.markers, "cluster8.markers.txt",sep = "\t", quote = F)
+write.table(cluster9.markers, "cluster9.markers.txt",sep = "\t", quote = F)
+write.table(cluster10.markers, "cluster10.markers.txt",sep = "\t", quote = F)
+
+
+
+#########################################################################################################################################################################################################################################################CellphoneDB analysis
+###We include several tools for visualizing marker expression. 
+###VlnPlot (shows expression probability distributions across clusters), and FeaturePlot (visualizes feature expression on a tSNE or PCA plot) are our most commonly used visualizations. 
+###We also suggest exploring RidgePlot, CellScatter, and DotPlot as additional methods to view your dataset.
+dev.off()
+#Ductal cell 1： AMBP，CFTR，MMP7；Cluster 1
+VlnPlot(normttdata, features = c("SLC4A4","FXYD2","AMBP","ATP1A1","CFTR"))
+
+#Ductal cell 2：KRT19，KRT7， TSPAN8，SLPI；Cluster 0
+VlnPlot(normttdata, features = c("KRT19", "KRT7","TSPAN8","SLPI","TFF1","TFF2"))
+
+#Acinar：PRSS1，CTRB1，CTRB2，REG1B；Cluster 8
+VlnPlot(normttdata, features = c("PRSS1", "CTRB1","CTRB2","CTRB2","REG1A","CTRC"))
+
+#Endocrine cell：CHGB，CHGA，INS，IAPP；Cluster 9
+VlnPlot(normttdata, features = c("CHGB", "CHGA","PCSK1N","IAPP"))
+
+#Stellate cell：RGS5，ACTA2，PDGFRB，ADIRF,pericyte；Cluster 5
+VlnPlot(normttdata, features = c("ACTA2", "RGS5","PDGFRB","GJA4","ADIRF","TAGLN"))
+
+#(fibroblast)：LUM, DCN, COL1A1,Cluster 3
+VlnPlot(normttdata, features = c("COL1A2", "COL1A1","PDGFRA","SFRP2","LUM","DCN"))
+
+#endothelial cell ：CDH5, PLVAP, VWF, CLDN5 (),Cluster 2   GFAP??
+VlnPlot(normttdata, features = c("PLVAP", "RAMP2","EPAS1","TGFBR2","SPRY1"))
+
+#macrophage ：AIF1, CD64??, CD14, CD68 ()Cluster 4 CD163 ===!!! TAM
+VlnPlot(normttdata, features = c("AIF1","CD14","FCGR3A","CD68","CD163"))
+
+#T cell ：CD3D, CD3E, CD4,CD8 (),Cluster 7
+VlnPlot(normttdata, features = c("CD3D", "CD3E","CD4","CD8A","CD8B"))
+
+#B cell ：MS4A1/CD20, CD79A, CD79B, ---???CD52 ().Cluster 6
+VlnPlot(normttdata, features = c("MS4A1", "CD79A","CD79B","CD19","CD40"))
+
+# you can plot raw counts as well
+VlnPlot(normttdata, features = c("NKG7", "PF4"), slot = "counts", log = TRUE)
+FeaturePlot(normttdata, features = c("RGS5", "ADIRF", "FXYD2", "SLC4A4"))
+###DoHeatmap generates an expression heatmap for given cells and features. In this case, we are plotting the top 20 markers (or all markers if less than 20) for each cluster.
+top10 <- normttdata.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
+top10 <- normttdata.markers10 %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
+#XX#top100 <- normttdata.markers10 %>% group_by(cluster) %>% top_n(n = 100, wt = avg_logFC)
+pdf(file = "doheatmap-35-10-0103.pdf")
+DoHeatmap(normttdata, features = top10$gene) + NoLegend()
+dev.off()
+
+###subset
+head(Idents(normttdata), 5)
+normttdata@meta.data$seurat_clusters
+normttdata1 <- subset(x = normttdata, seurat_clusters%in%c(0:10))
+normttdata@meta.data$seurat_clusters
+
+###random selecting n samples from any clusters
+randomsampes <- function(n,seuratdata,Cluster){
+  x <- seuratdata
+  y <- Cluster
+  n <- n
+  ###pick up selected cluster
+  test <- subset(x = x, seurat_clusters==y)
+  ###sum samples
+  sumsamples <- sum(x@meta.data$seurat_clusters==y)
+  ###random selection
+  x1 <- sample(sumsamples,n,replace = F)
+  ###locking samples' position
+  cells <- colnames(test)[x1]
+  S <- subset(x = x, cells = cells)
+  return(S)
+}
+
+
+cluster0to100 <- randomsampes(100,normttdata,0)
+#cluster2to100 <- randomsampes(100,normttdata,2)
+ts <- merge(ts,cluster2to100)
+#cluster1to100@meta.data$tissue
+#cluster0to100@meta.data$tissue
+randomtotal100 <- cluster0to100
+for (i in 1:9){
+    t <- ""
+    t <- randomsampes(100,normttdata,i)
+    randomtotal100 <- merge(randomtotal100,t)
+}
+
+
+
+top10 
+top1010 <- subset(top10, cluster%in%c(0:10))
+###20210506 10 types
+top1010 <- subset(top10, cluster%in%c(0:9))
+###20210506 10 types
+##XXX##top1010 <- subset(top100, cluster%in%c(0:9))
+pdf(file = "doheatmap-10-100-0506.pdf")###当出界时记住了先保存直接输出结果
+pdf(file = "doheatmap-100-100-0506.pdf")
+DoHeatmap(randomtotal100, features = top1010$gene) + NoLegend()
+dev.off()
+top1010$gene
+top1010purified <- top1010$gene[!duplicated(top1010$gene)]
+data100 <- randomtotal100@assays$SCT@scale.data
+randomtotal100@meta.data$seurat_clusters
+data100 <- data100[rownames(data100)%in%top1010purified,]
+##XXX##write.table(data100, "scRNA-100samples-10celltype-sctscaled-data-100genes-0506.txt", sep = "\t", quote = F)
+write.table(data100, "scRNA-100samples-10celltype-sctscaled-data-0506.txt", sep = "\t", quote = F)
+
+save.image(file = "01031803.Rdata")
+
+
+#Assigning cell type identity to clusters
+new.cluster.ids <- c("Ductal cell 2", "Ductal cell 1", "Endothelial cell", "Fibroblast",
+                     "Tumour-associated macrophage", "Pericyte", "B cell",
+                     "T cell", "Acinar cell", "Endocrine cell")
+names(new.cluster.ids) <- levels(normttdata)
+normttdata <- RenameIdents(normttdata, new.cluster.ids)
+DimPlot(normttdata, reduction = "umap", label = TRUE, pt.size = 0.5)
+DimPlot(normttdata, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+
+###Check patients info
+(normttdata@meta.data$orig.ident)
+sum((normttdata@meta.data$orig.ident=="t1"&normttdata@meta.data$seurat_clusters=="0"))
+pinf <- cbind(normttdata@meta.data$orig.ident, normttdata@meta.data$seurat_clusters)
+colnames(pinf) <- c("patient", "cluster")
+pinf <- as.data.frame(pinf)
+sum(pinf$patient=="n1"&pinf$cluster=="1")
+patientcell <- as.data.frame(table(pinf))
+patientcell$Freq
+patient10cell <- patientcell[patientcell$Freq>=10,]
+library(reshape2)
+pp <- dcast(patientcell,patient~cluster, value.var = "Freq")
+write.table(pp, "patientcellinfo-0513.txt", sep = "\t", quote = F)
+write.table(patientcell, "patientcellinfo-longdata-0513.txt", sep = "\t", quote = F)
+
+###downloading pca info of 10 cell types
+xx <- normttdata@reductions$umap@cell.embeddings%>%as.data.frame() %>% cbind(tx = normttdata@meta.data$seurat_clusters)
+library(ggplot2)
+xx$UMAP_1
+xx$UMAP_2
+xx$tx
+
+ggplot(xx, aes(x = UMAP_1, y = UMAP_2, color = tx)) + 
+  geom_point(size = 0.2, alpha = 1) + 
+  scale_color_manual(values=c("#E64B35FF", "#4DBBD5FF", "#00A087FF", "#3C5488FF",
+                              "#F39B7FFF", "#8491B4FF", "#91D1C2FF", "#DC0000FF",
+                              "#7E6148FF", "#B09C85FF"))
+
+write.table(xx, "scRNAseq-umap-10celltypes-0504-.txt", sep = "\t", quote = F)
+#saveRDS(normttdata, file = "C:/Users/szlil/Desktop/scRNA-example/pbmc3k_filtered_gene_bc_matrices/filtered_gene_bc_matrices/hg19/pbmc3k_final.rds")
+
+save.image(file = "0112.Rdata")
+
+###ECM score of single cells
+x <- normttdata@assays$SCT@data
+x[1:10,1:5]
+
+
+matrisome_set = read.table("ecm_genes_human.txt", sep = "\t", header = TRUE)
+dat <- x
+
+#collagens
+collagens = matrisome_set$Gene.Symbol[which(matrisome_set$Category %in% c("Collagens"))]
+reads_single_phase = dat
+reads_single_phase = as.matrix(reads_single_phase[rownames(reads_single_phase) %in% (collagens) ,])
+combined_matrix = rbind(reads_single_phase,average=apply(reads_single_phase,2,mean))
+cor_matrix = cor(t(combined_matrix))
+cor_vector = cor_matrix[,dim(cor_matrix)[1]]
+reads_single_phase_restricted = reads_single_phase[rownames(reads_single_phase) %in% names(cor_vector[cor_vector >= 0.1]),]
+col_score = apply(reads_single_phase_restricted,2,mean)
+
+
+#glycoproteins
+collagens = matrisome_set$Gene.Symbol[which(matrisome_set$Category %in% c("ECM Glycoproteins"))]
+reads_single_phase = dat
+reads_single_phase = as.matrix(reads_single_phase[rownames(reads_single_phase) %in% (collagens) ,])
+combined_matrix = rbind(reads_single_phase,average=apply(reads_single_phase,2,mean))
+cor_matrix = cor(t(combined_matrix))
+cor_vector = cor_matrix[,dim(cor_matrix)[1]]
+reads_single_phase_restricted = reads_single_phase[rownames(reads_single_phase) %in% names(cor_vector[cor_vector >= 0.1]),]
+gp_score = apply(reads_single_phase_restricted,2,mean)
+
+
+#proteoglycans
+collagens = matrisome_set$Gene.Symbol[which(matrisome_set$Category %in% c("Proteoglycans"))]
+reads_single_phase = dat
+reads_single_phase = as.matrix(reads_single_phase[rownames(reads_single_phase) %in% (collagens) ,])
+combined_matrix = rbind(reads_single_phase,average=apply(reads_single_phase,2,mean))
+cor_matrix = cor(t(combined_matrix))
+cor_vector = cor_matrix[,dim(cor_matrix)[1]]
+reads_single_phase_restricted = reads_single_phase[rownames(reads_single_phase) %in% names(cor_vector[cor_vector >= 0.1]),]
+pg_score = apply(reads_single_phase_restricted,2,mean)
+
+
+#ECM score
+collagens = matrisome_set$Gene.Symbol[which(matrisome_set$Division %in% c("Core matrisome"))]
+reads_single_phase = dat
+reads_single_phase = as.matrix(reads_single_phase[rownames(reads_single_phase) %in% (collagens) ,])
+combined_matrix = rbind(reads_single_phase,average=apply(reads_single_phase,2,mean))
+cor_matrix = cor(t(combined_matrix))
+cor_vector = cor_matrix[,dim(cor_matrix)[1]]
+reads_single_phase_restricted = reads_single_phase[rownames(reads_single_phase) %in% names(cor_vector[cor_vector >= 0.1]),]
+ecm_score = apply(reads_single_phase_restricted,2,mean)
+
+normttdata@meta.data$col_score <- col_score
+normttdata@meta.data$gp_score <- gp_score
+normttdata@meta.data$pg_score <- pg_score
+normttdata@meta.data$ecm_score <- ecm_score
+
+###20210508
+xxx <- normttdata@meta.data$ecm_score%>%as.data.frame()%>% cbind(col_score = normttdata@meta.data$col_score)%>% cbind(gp_score = normttdata@meta.data$gp_score)%>% cbind(pg_score = normttdata@meta.data$pg_score)%>% cbind(clusters = normttdata@meta.data$seurat_clusters)
+write.table(xxx, "scRNAseq-umap-ecms-0508-.txt", sep = "\t", quote = F)
+
+#XXXDimPlot(normttdata, group.by = "ecm_score", reduction = "umap")
+
+FeaturePlot(normttdata, features = c("ecm_score"))
+FeaturePlot(normttdata, features = c("col_score"))
+FeaturePlot(normttdata, features = c("gp_score"))
+FeaturePlot(normttdata, features = c("pg_score"))
+
+save(normttdata,file = 'normttdata-0114-af-ecm')
+save.image(file = "0114.Rdata")
+
+#########################################################################################################################################################################################################################################################CellphoneDB analysis
+###abstract CAFs
+###_20210222 analyzing fibroblasts' clusters__________
+###Fibroblast
+ecmcellsn <- subset(x = normttdata, seurat_clusters%in%"3"&tissue%in%"Tumor")
+ecmcellsn@meta.data$original.group <- ecmcellsn@active.ident
+ecmcellsn <- FindNeighbors(ecmcellsn, dims = 1:20)
+ecmcellsn <- FindClusters(ecmcellsn, algorithm = 1, resolution = 0.1)
+
+#Run non-linear dimensional reduction (UMAP/tSNE)
+###Seurat offers several non-linear dimensional reduction techniques, such as tSNE and UMAP, to visualize and explore these datasets.
+# If you haven't installed UMAP, you can do so via reticulate::py_install(packages =
+# 'umap-learn')
+library(reticulate)
+#py_available()
+use_python("/home/pmc_307/Connda/Conda/envs/rna/bin/python", required = T)
+
+ecmcellsn <- RunUMAP(ecmcellsn, dims = 1:10)
+
+DimPlot(ecmcellsn, reduction = "umap")
+DimPlot(ecmcellsn, group.by = "tissue", reduction = "umap")
+DimPlot(ecmcellsn, group.by = "original.group", reduction = "umap")
+FeaturePlot(ecmcellsn, features = c("ecm_score"))
+
+
+##Analyze expression of fibs' biomarkers
+VlnPlot(ecmcellsn, features = c("ACTA2", "FAP","VIM","S100A4","PDPN"))
+VlnPlot(ecmcellsn, features = c("PDGFRA", "PDGFRB"))
+VlnPlot(ecmcellsn, features = c("IL6", "IL8", "ACTA2"))
+VlnPlot(ecmcellsn, features = c("IL1R1", "IL1", "TGFB1","TGFBR1"))
+VlnPlot(ecmcellsn, features = c("CD74", "HLA-DMA", "HLA-DMB","HLA-DOA"))
+VlnPlot(ecmcellsn, features = c("HLA-DOB", "HLA-DPA1","HLA-DPB1"))
+VlnPlot(ecmcellsn, features = c("HLA-DQA1", "HLA-DQA2","HLA-DQB1"))
+VlnPlot(ecmcellsn, features = c("HLA-DQB2", "HLA-DRA","HLA-DRB1"))
+VlnPlot(ecmcellsn, features = c("HLA-DRB3", "HLA-DRB4","HLA-DRB5"))
+VlnPlot(ecmcellsn, features = c("CD74"))
+VlnPlot(ecmcellsn, features = c("FAP","SOD3"))
+VlnPlot(ecmcellsn, features = c("MGP","SFRP4","IGFBP7"))
+VlnPlot(ecmcellsn, features = c("ENO1","ADM","FTH1"))
+VlnPlot(ecmcellsn, features = c("LRRC15"))
+VlnPlot(ecmcellsn, features = c("TAGLN"))
+VlnPlot(ecmcellsn, features = c("IL6","HAS1","CCL2"))
+VlnPlot(ecmcellsn, features = c("IL6","HAS1","CCL2"))
+VlnPlot(ecmcellsn, features = c("MGP","IGFBP7","TIMP1", "C7"))
+
+CCScore <- function(data, genelist){
+  reads_single_phase = data
+  reads_single_phase = as.matrix(reads_single_phase[rownames(reads_single_phase) %in% (genelist) ,])
+  combined_matrix = rbind(reads_single_phase,average=apply(reads_single_phase,2,mean))
+  cor_matrix = cor(t(combined_matrix))
+  cor_vector = cor_matrix[,dim(cor_matrix)[1]]
+  reads_single_phase_restricted = reads_single_phase[rownames(reads_single_phase) %in% names(cor_vector[cor_vector >= 0.1]),]
+  CCscore = apply(reads_single_phase_restricted,2,mean)
+  return(CCscore)
+}
+fat <- read.table("FBcells.txt", sep = "\t", header = TRUE,stringsAsFactors = F)
+f1 <- fat[fat[,1]=="iCAF",2]
+f2 <- fat[fat[,1]=="myCAF",2]
+###1
+xecm <- ecmcellsn@assays$SCT@data
+xecm[1:10,1:5]
+f1 <- f1[!duplicated(f1)]
+f1 <- rownames(xecm[rownames(xecm)%in%f1,])
+R40iCAF <- CCScore(xecm ,f1)
+ecmcellsn@meta.data$iCAF <- R40iCAF
+FeaturePlot(ecmcellsn, features = c("iCAF"))
+
+###2
+f2 <- f2[!duplicated(f2)]
+f2 <- rownames(xecm[rownames(xecm)%in%f2,])
+R41myCAF <- CCScore(xecm ,f2)
+ecmcellsn@meta.data$myCAF <- R41myCAF
+FeaturePlot(ecmcellsn, features = c("myCAF"))
+
+sum(ecmcellsn@meta.data$seurat_clusters=="2")
+
+tempe <- ecmcellsn03
+m2e1 <- ecmcellsn03 %>% group_by(cluster) %>% top_n(n = 2, wt = avg_logFC)
+m100e1 <- ecmcellsn03 %>% group_by(cluster) %>% top_n(n = 100, wt = avg_logFC)
+
+new.cluster.idse <- c("Fibroblast 1", "Fibroblast 2", "Fibroblast 3")
+names(new.cluster.idse) <- levels(ecmcellsn)
+ecmcellsn <- RenameIdents(ecmcellsn, new.cluster.idse)
+DimPlot(ecmcellsn, reduction = "umap", label = TRUE, pt.size = 0.5)
+DimPlot(ecmcellsn, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+ecmcellsn@meta.data$final.group <- ecmcellsn@active.ident
+#########################################################################################################################################################################################################################################################CellphoneDB analysis
+###Feature of Fibroblasts according to top gene features
+###Seurat has several tests for differential expression which can be set with the test.use parameter (see our DE vignette for details). For example, the ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect).
+ecmcellsnluster1.markers <- FindMarkers(ecmcellsn, ident.1 = "Fibroblast 1", logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+ecmcellsnluster2.markers <- FindMarkers(ecmcellsn, ident.1 = "Fibroblast 2", logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+ecmcellsnluster3.markers <- FindMarkers(ecmcellsn, ident.1 = "Fibroblast 3", logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+
+#setwd("~/T1230-scRNA/CAF analysis")
+write.table(ecmcellsnluster1.markers, "ecmcellsnluster1.markers.txt",sep = "\t", quote = F)
+write.table(ecmcellsnluster2.markers, "ecmcellsnluster2.markers.txt",sep = "\t", quote = F)
+write.table(ecmcellsnluster3.markers, "ecmcellsnluster3.markers.txt",sep = "\t", quote = F)
+
+set.seed(7777777)
+cluster0to500 <- randomsampes(500,ecmcellsn,0)
+cluster0to500@meta.data$final.group
+
+randomtotal500 <- cluster0to500
+for (i in c(1, 2)){
+  t <- ""
+  t <- randomsampes(500,ecmcellsn,i)
+  randomtotal500 <- merge(randomtotal500,t)
+}
+
+randomtotal500@meta.data$final.group[1500]
+randomtotal500 <- FindNeighbors(randomtotal500, dims = 1:20)
+randomtotal500 <- FindClusters(randomtotal500, algorithm = 1, resolution = 0.2)
+### Look at cluster IDs of the first 5 cells
+DimPlot(randomtotal500, reduction = "umap", label = TRUE, pt.size = 0.5)
+
+Fibmatrix1 <- randomtotal500@assays$SCT@data
+Fibmatrix1 <- as.matrix(Fibmatrix1)
+save(Fibmatrix1, file = "Fibmatrix1-0729")
+
+Fibmatrix1 <- Fibmatrix1[which(rowSums(Fibmatrix1) > 0),]
+
+library("magrittr")
+sfibnames1 <- paste("Fibroblast 1",".",1:500, sep = "") 
+sfibnames1 <- c(sfibnames1, paste("Fibroblast 2",".",1:500, sep = ""))
+sfibnames1 <- c(sfibnames1, paste("Fibroblast 3",".",1:500, sep = ""))
+sfibnames1[1501]
+
+colnames(Fibmatrix1) <- sfibnames1
+write.table(Fibmatrix1,"fibroblasts-0729-3clusters.txt", sep = "\t", quote = F)
+
+cafs3_0729 <- ecmcellsn@assays$SCT@data
+
+###We include several tools for visualizing marker expression. 
+###VlnPlot (shows expression probability distributions across clusters), and FeaturePlot (visualizes feature expression on a tSNE or PCA plot) are our most commonly used visualizations. 
+###We also suggest exploring RidgePlot, CellScatter, and DotPlot as additional methods to view your dataset.
+dev.off()
+###Ref 3 different clusters 
+VlnPlot(ecmcellsn, features = c("COL11A1", "LRRC15","TAGLN"))
+VlnPlot(ecmcellsn, features = c("C7", "CFD","PTGDS"))
+VlnPlot(ecmcellsn, features = c("IL6", "HAS1","CCL2"))
+
+
+###monocle
+library("monocle")
+library("SingleCellExperiment")
+library(dplyr)
+class(ecmcellsn@assays$SCT@data)
+class(ecmcellsn)[[1]]
+Mono_tj <- ecmcellsn
+#Extract data, phenotype data, and feature data from the SeuratObject
+Mono_matrix <- as(as.matrix(GetAssayData(Mono_tj,slot = "counts")), 'sparseMatrix')
+
+feature_ann<-data.frame(gene_id=rownames(Mono_matrix),gene_short_name=rownames(Mono_matrix))
+rownames(feature_ann)<-rownames(Mono_matrix)
+
+Mono_fd<-new("AnnotatedDataFrame", data = feature_ann)
+###phenotype info
+sample_ann<-Mono_tj@meta.data
+Mono_pd<-new("AnnotatedDataFrame", data =sample_ann)
+
+#build new cell data set
+Mono.cds<-newCellDataSet(Mono_matrix,phenoData =Mono_pd,featureData =Mono_fd,expressionFamily=negbinomial.size())
+
+Mono.cds <- estimateSizeFactors(Mono.cds)
+Mono.cds <- estimateDispersions(Mono.cds)
+disp_table <- dispersionTable(Mono.cds)
+unsup_clustering_genes <- subset(disp_table, mean_expression >= 0.1)
+dim(unsup_clustering_genes)
+sig_genes <- unsup_clustering_genes
+sig_genes$gene_short_name = sig_genes$gene_id
+Mono.cds <- setOrderingFilter(Mono.cds, unsup_clustering_genes$gene_id)
+plot_ordering_genes(Mono.cds)
+
+Mono.cds <- reduceDimension(
+  Mono.cds,
+  max_components = 2,
+  method = 'DDRTree',
+  verbose = T)
+
+save(Mono.cds,file = "Mono.cdsfibro731-Tumor-3clusters")
+Mono.cds <- orderCells(Mono.cds)
+save(Mono.cds,file = "Mono.cdsfibro0731-order")
+
+head(pData(Mono.cds))
+dev.off()
+plot_cell_trajectory(Mono.cds,cell_size = 1, color_by = "State")
+
+Mono.cds$Pseudotime
+Mono.cds$final.group
+plot_cell_trajectory(Mono.cds, color_by = "final.group")
+plot_cell_trajectory(Mono.cds, color_by = "Pseudotime")
+#########adding analysis of pseudotime analysis
+ordering_genes <- unsup_clustering_genes$gene_id
+plot_pseudotime <- plot_pseudotime_heatmap(Mono.cds[ordering_genes, ], num_clusters = 3,
+                                           cores = 10, return_heatmap = T, show_rownames = F)
+
+plot_genes_in_pseudotime(Mono.cds["SAMD11",], 
+                         color_by = "final.group")
+
+############new analysis of Trajery
+#cdssave0823 <- cds
+cds<-newCellDataSet(Mono_matrix,phenoData =Mono_pd,featureData =Mono_fd,expressionFamily=negbinomial.size())
+cds <- estimateSizeFactors(cds)
+cds <- estimateDispersions(cds)
+cds <- detectGenes(cds, min_expr = 1)
+print(head(fData(cds)))
+expressed_genes <- row.names(subset(fData(cds),
+                                    num_cells_expressed >= 10)) #
+
+length(expressed_genes)
+
+disp_table1 <- dispersionTable(cds)
+disp.genes1 <- subset(disp_table1, mean_expression >= 0.1 & dispersion_empirical >= 1 * dispersion_fit)$gene_id
+cds <- setOrderingFilter(cds, disp.genes1)
+plot_ordering_genes(cds)
+length(disp.genes1)
+diff <- differentialGeneTest(cds[expressed_genes,],fullModelFormulaStr="~final.group",cores=1) 
+deg <- subset(diff, qval <0.01&num_cells_expressed>=10) #选出2829个基因
+deg <- deg[order(deg$qval,decreasing=F),]
+dim(deg)
+head(deg)
+length(ordergene)
+write.table(deg,file="train.monocle.DEG.xls",col.names=T,row.names=F,sep="\t",quote=F)
+ordergene <- rownames(deg)[1:2000] 
+cds <- setOrderingFilter(cds, ordergene)  
+plot_ordering_genes(cds)
+length(ordergene)
+cds <- reduceDimension(cds, max_components = 2,
+                       method = 'DDRTree')
+cds <- orderCells(cds)
+plot_cell_trajectory(cds,color_by="Pseudotime", size=1,show_backbone=TRUE) 
+plot_cell_trajectory(cds,color_by="final.group", size=1,show_backbone=TRUE)
+save(cds,file = "CDS-0823")
+
+cafcluster0to100 <- randomsampes(100,ecmcellsn,0)
+cafrandomtotal100 <- cafcluster0to100
+for (i in 1:2){
+  t <- ""
+  t <- randomsampes(100,ecmcellsn,i)
+  cafrandomtotal100 <- merge(cafrandomtotal100,t)
+}
+
+caftop10 <- ecmcellsn03 %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
+caftop10 
+caftop1010 <- caftop10
+caftop1010$gene
+caftop1010purified <- caftop1010$gene[!duplicated(caftop1010$gene)]
+caftop1010purified
+cafdata100 <- cafrandomtotal100@assays$SCT@scale.data
+cafrandomtotal100@meta.data$final.group
+cafdata100 <- as.data.frame(cafdata100)
+tsss <- cafdata100[caftop1010purified,]
+tsss <- na.omit(tsss)
+rownames(tsss)
+write.table(tsss, "scRNA-100samples-3CAFs-sctscaled-data-0802.txt", sep = "\t", quote = F)
+caftop02 <- ecmcellsn03 %>% group_by(cluster) %>% top_n(n = 2, wt = avg_logFC)
+write.table(caftop02, "scRNA-100samples-3CAFs-2topgenes-0802.txt", sep = "\t", quote = F)
+
+######abstracting reduction of umap -0802
+ecmcellsn@reductions$umap@cell.embeddings
+xxxcaf <- ecmcellsn@reductions$umap@cell.embeddings%>%as.data.frame() %>% cbind(tx = ecmcellsn@meta.data$final.group)
+xxxcaf$UMAP_1
+xxxcaf$UMAP_2
+xxxcaf$tx
+write.table(xxxcaf, "scRNAseq-umap-3CAFs-0802.txt", sep = "\t", quote = F)
+
+xxxxxx <- ecmcellsn@meta.data$ecm_score%>%as.data.frame()%>% cbind(col_score = ecmcellsn@meta.data$col_score)%>% cbind(gp_score = ecmcellsn@meta.data$gp_score)%>% cbind(pg_score = ecmcellsn@meta.data$pg_score)%>% cbind(clusters = ecmcellsn@meta.data$final.group)
+write.table(xxxxxx, "scRNAseq-3cafs-umap-ecms-0802-.txt", sep = "\t", quote = F)
+
+xxxxxxicaf <- ecmcellsn@meta.data$iCAF%>%as.data.frame()%>% cbind(clusters = ecmcellsn@meta.data$final.group)
+write.table(xxxxxxicaf, "scRNAseq-3cafs-umap-iCAF-0802-.txt", sep = "\t", quote = F)
+
+xxxxxxmycaf <- ecmcellsn@meta.data$myCAF%>%as.data.frame()%>% cbind(clusters = ecmcellsn@meta.data$final.group)
+write.table(xxxxxxmycaf, "scRNAseq-3cafs-umap-myCAF-0802-.txt", sep = "\t", quote = F)
+
+colnames(Fibmatrix) <- sfibnames
+
+write.table(Fibmatrix,"fibroblasts-0122-5clusters.txt", sep = "\t", quote = F)
+
+cds <- estimateSizeFactors(cds)
+cds <- estimateDispersions(cds)
+save(cds,file = "cds0114pesudo-time")
+load("cds0114pesudo-time")
+package.version("monocle")
+cds <- preprocessCDS(cds, num_dim = 20)
+cds <- reduceDimension(cds, reduction_method = 'UMAP')
+cds <- partitionCells(cds)
+cds <- learnGraph(cds,  RGE_method = 'SimplePPT')
+plot_cell_trajectory(cds,
+                     color_by = "cell_type2") +
+  scale_color_manual(values = cell_type_color)
+
+disp_table <- dispersionTable(cds)
+unsup_clustering_genes <- subset(disp_table, mean_expression >= 0.1)
+cds <- setOrderingFilter(cds, unsup_clustering_genes$gene_id)
+plot_ordering_genes(cds) 
+plot_pc_variance_explained(cds, max_components = 50 , return_all = F) # norm_method='log'
+#dev.off()
+cds <- reduceDimension(cds, max_components = 2, num_dim = 20,
+                       reduction_method = 'DDRTree', verbose = T)
+cds <- orderCells(cds)
+plot_cell_trajectory(cds, color_by = "Biological_Condition")
+#########################################################################################################################################################################################################################################################CellphoneDB analysis
+###CellphoneDB analysis
+count_raw_3cafs <- ecmcellsn@assays$RNA@data
+count_norm_3cafs <- apply(count_raw_3cafs, 2, function(x) (x/sum(x))*10000)
+count_norm_3cafs <- count_norm_3cafs[which(rowSums(count_norm_3cafs) > 0),]
+ccc_3cafs_count <- data.frame(Gene=rownames(count_norm_3cafs), count_norm_3cafs)
+ccc_3cafs_meta <- data.frame(Cell=rownames(ecmcellsn@meta.data), cell_type=ecmcellsn@meta.data$final.group)
+ccc_3cafs_meta$Cell <- gsub("-",".", ccc_3cafs_meta$Cell)
+write.table(ccc_3cafs_count, "test_3cafs_counts.txt", row.names=F, sep='\t', quote = F)
+write.table(ccc_3cafs_meta, "test_3cafs_meta.txt", row.names=F, sep='\t', quote = F)
+######################################################################################################################################################################################################################################################
+
+

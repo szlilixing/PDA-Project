@@ -1,0 +1,317 @@
+##SVA GEO
+rm(list=ls())
+setwd("F:\\T1220")
+
+###20201220 
+###Loading samples including 845samples from 11 datasets (10 from affymetrix platform，1 from illumina platform)  ###Perform 2 "combat"
+d1 <- read.table("CS-11datasets-845.txt", sep = "\t", quote = "\"'")
+pheno <- read.table("phenotype-845.txt", sep = "\t", quote = "\"'", header = T)
+
+ddd <- d1
+
+CC2 <- ddd[,651:845]
+datatpm <- cbind(CC1,CC2)
+#datatpm <- cbind(datatpm,ddd[,745:939])
+phenotpm <- pheno
+#phenotpm <- pheno[1:650,]
+#phenotpm <- pheno[651:744,]
+
+###Combat methods
+library("sva")
+datatpm <- as.matrix(datatpm)
+library("FactoMineR")
+library(factoextra)
+#datatpm01 <- datatpm[which(rowSums(datatpm) > 0),] 
+#table(phenotpm$GSE.N)
+
+#g <- factor(phenotpm$Corhort, labels=c("GSE15471","GSE17891","GSE28735","GSE56560", "GSE60646","GSE62165","GSE71989","E-MTAB-6134","GSE16515","GSE32676"))
+#g <- factor(phenotpm$Corhort, labels=c("GSE55643","GSE60980"))
+g <- factor(phenotpm$Corhort, labels=c("GSE15471","GSE17891","GSE28735","GSE56560", "GSE60646","GSE62165","GSE71989","E-MTAB-6134","GSE16515","GSE32676","E-MTAB-1791"))
+phenotpm$Corhort <- g
+
+#combat_edata1 <- ComBat(dat = datatpm, batch = phenotpm$Corhort)
+combat_edata1 <- ComBat(dat = datatpm, batch = phenotpm$Normalization)
+#pca_plot(combat_edata1,g)
+CC1 <- combat_edata1
+#CC2 <- combat_edata1
+L <- combat_edata1
+
+write.table(L, "CC2-AI-Z-Tumor-T845-1-1220.txt", sep = "\t", quote = F)
+
+###PCA
+data <- L ### PCA after Combat
+##data <- ddd
+group <- ""
+#group = as.factor(phenotypet$Corhort)
+group = as.factor(pheno$Corhort)
+group
+levels(group) = c("GSE15471","GSE17891","GSE28735","GSE56560", "GSE60646","GSE62165","GSE71989","E-MTAB-6134","GSE16515","GSE32676","E-MTAB-1791")
+
+data1=t(as.matrix(data))
+pca =prcomp(data1, scale= T)
+pca_reuslt <- as.data.frame(pca$x)
+#write.table(pca_reuslt,"PCA1217.txt", sep = "\t", quote = F,row.names = F)
+
+library(plot3D)
+library(scatterplot3d)
+library(RColorBrewer)
+library(ggplot2)
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+display.brewer.all()
+group
+colours0 <- brewer.pal(11,"Spectral")
+colour1 <-colours0[as.numeric(factor(group))]
+group
+colour1
+scatterplot3d(pca_reuslt[,1:3], pch=20, color=colour1,angle=45,main= "After Combat",cex.symbols= 1.0,mar=c(5.1, 4.1, 4.1, 8.1))
+xy <- par("usr")
+legend(x = 6.4,y = 6.2, legend = c("GSE15471","GSE17891","GSE28735","GSE56560", "GSE60646","GSE62165","GSE71989","E-MTAB-6134","GSE16515","GSE32676","E-MTAB-1791"), col =colours0, pch = 20,bg="white", xpd = T, inset = -0.3, cex = 1, bty = "n",y.intersp =0.4)
+scale_y_continuous(limits = c(0,200))
+
+###Calculate batch variance correlation
+summary.prcomp=summary(pca)
+ss <- summary.prcomp$importance
+ss <- as.data.frame(ss)
+ss[3,465] (Varience > 90%)
+s90 <- ss[,1:465]
+p90 <- pca$x[,1:465]
+#rownames(phenotypet) <- phenotypet$geo_accession
+rownames(pheno) <- pheno$geo_accession
+#phenotypet$Corhort <- factor(phenotypet$Corhort,  labels = c("GSE15471","GSE17891","GSE28735","GSE56560", "GSE60646","GSE62165","GSE71989","E-MTAB-6134","GSE16515","GSE32676","GSE55643","GSE60980","E-MTAB-1791"))
+#phenotypet$Corhort
+pheno$Corhort <- factor(pheno$Corhort,  labels = c("GSE15471","GSE17891","GSE28735","GSE56560", "GSE60646","GSE62165","GSE71989","E-MTAB-6134","GSE16515","GSE32676","E-MTAB-1791"))
+#pheno$Corhort
+
+
+#ano <- cbind(p90, phenotypet)
+ano <- cbind(p90, pheno)
+#ano$Normal.or.tumor <- NULL
+###Anova of PC1-518
+tp <- ""
+tp <- matrix(7777777,nc=465,nr=8)
+colnames(tp) <- colnames(ano)[1:465]
+rownames(tp) <- colnames(ano)[c(469:476)]
+tp <- as.data.frame(tp)
+
+x <- 0
+ttt <- ""
+j <- 0
+a <- 0
+genename <- colnames(ano)
+genenamemark <- ""
+genenamemark <- colnames(ano)[1:465]
+y <- colnames(ano)[469:476]
+for(i in 1:465){
+  for (s in 1:8) {
+    fit<-bartlett.test(get(genenamemark[i])~get(y[s]),data=ano)
+    if (fit[["p.value"]] > 0.05) {
+      fit2<-shapiro.test(ano[,i])
+      if (fit2[["p.value"]] > 0.05){
+        m <- ""
+        fit3<-aov(ano[,i]~ano[,s+468],data=ano)
+        m <- summary.aov(fit3)
+        tp[s,i] <- m[[1]][,"Pr(>F)"][1]
+      }else{
+        k <- ""
+        k <- kruskal.test(x = ano[,i], g = ano[,s+468], data = ano)
+        tp[s,i] <- k$p.value
+      }
+      
+    }
+    else{  
+      k <- ""
+      k <- kruskal.test(x = ano[,i], g = ano[,s+468], data = ano)
+      tp[s,i] <- k$p.value
+    }   
+  }
+}
+
+
+write.table(tp, "Ktest-Anova-PCA-465-8variables-Total845.txt", sep = "\t", quote = F)
+
+samples <- tp
+samples[samples<0.001] <- 0.001  ###Set limitations
+datasum <- -log10(as.matrix(samples))
+
+###Heatmap of PC variance
+library(pheatmap)
+library(scatterplot3d)
+library(RColorBrewer)
+library(ggplot2)
+###df <- log2(total1+1)
+df <- datasum
+display.brewer.all()
+colours0 <- brewer.pal(3, 'RdYlBu')
+
+annotation_row = rownames(df)
+rownames(df)[4] <- "Fresh Frozen/FFPE"
+#rownames(df)[5] <- "Tumor or Normal"
+
+library(ggplot2)
+library(ggtree)
+library(aplot)
+library(tidyr)
+
+p <- as.data.frame(df)
+p$mtxars <- rownames(p)
+p1 <- gather(p, key="PC", value='-Log10(P.value)', -mtxars)
+p1$`-Log10(P.value)`
+p1$mtxars <- factor(p1$mtxars, levels = c("Grade","Stage","Gender","Histology",  "Fresh Frozen/FFPE", "Normalization", "Platform","Corhort"))
+#"Corhort", "Platform", "Normalization","Fresh Frozen/FFPE","Histology","Gender","Stage","Grade"
+#"Grade","Stage","Gender","Histology","Fresh Frozen/FFPE", "Normalization", "Platform","Corhort"
+p1$mtxars
+
+pp <- ggplot(p1,aes(PC,mtxars,fill=`-Log10(P.value)`)) + geom_tile()+
+  theme_minimal()+
+  scale_fill_viridis_c() +
+  scale_y_discrete(position="right") + 
+  theme(axis.text.y = element_text(size = 18, color="black"), legend.text = element_text(size = 18, face = "bold", color="black"), legend.title = element_text(size = 18, face = "bold", color="black"))+
+  xlab(NULL) + ylab(NULL) +theme(axis.ticks.x = element_blank(), axis.text.x = element_blank())+theme(axis.line = element_blank())+
+  ggtitle("PC1-465, variance explained > 90%") +
+  theme(plot.title = element_text(hjust = 0.5, size = 36, face = "bold", color="black"))+
+  theme(strip.background = element_rect(color = "white", fill = "white", size = 18),panel.grid = element_blank(),strip.text = element_text(face = "bold", size = 20))
+pp
+
+###Calculate measures Firstly scaled
+c <- scale(L)
+tps <- ""
+tps <- matrix(7777777,nc=11702,nr=4)
+colnames(tps) <- rownames(c)
+rownames(tps) <- c("Mean","Median","SD","Mad")
+tps <- as.data.frame(tps)
+
+for (i in 1:nrow(c)) {
+  mm <- ""
+  mm <- as.array(as.numeric(c[i,]))
+  tps[1,i] <- mean(as.numeric(mm))
+  tps[2,i] <- median(as.numeric(mm))
+  tps[3,i] <- sd(as.numeric(mm))
+  tps[4,i] <- mad(as.numeric(mm), center = median(as.numeric(mm)), constant = 1.4826, na.rm = FALSE,
+                  low = FALSE, high = FALSE)
+}
+
+tps[5,] <- tps[1,]-tps[2,]
+tps[6,] <- tps[3,]-tps[4,]
+rownames(tps)[5:6] <- c("mean-median","sd-mad")
+
+write.table(tps,"Measures-Aftercombat-845.txt",sep = "\t", quote = F)
+
+
+
+
+##Distance 
+data1 <- scale(L)   ###After
+
+library(cluster)
+t <- dist(t(data1), method = "euclidean")
+#d <- dist(data1, method = "euclidean")
+tt <- as.matrix(t)
+
+m <- c(0,33,60,105,133,149,267,280,589,625,650,845)
+s1  <- 0
+ms <- ""
+
+for (i in 2:11) {
+  for (j in (i+1):12) {
+    x <- ""
+    s1 <- s1 + 1
+    x <- as.matrix(tt[(m[i-1]+1):m[i],(m[j-1]+1):m[j]])
+    ms[s1] <- mean(apply(x,1,min))
+  }
+}
+
+MMD <- ""
+MMD <- as.data.frame(ms)
+
+
+data2 <- scale(d1)   ###Before
+t2 <- dist(t(data2), method = "euclidean")
+#d <- dist(data1, method = "euclidean")
+tt2 <- as.matrix(t2)
+
+m <- c(0,33,60,105,133,149,267,280,589,625,650,845)
+s1  <- 0
+mss <- ""
+
+for (i in 2:11) {
+  for (j in (i+1):12) {
+    x <- ""
+    s1 <- s1 + 1
+    x <- as.matrix(tt2[(m[i-1]+1):m[i],(m[j-1]+1):m[j]])
+    mss[s1] <- mean(apply(x,1,min))
+  }
+}
+
+MMD <- as.data.frame(ms)
+MMD[,2] <- mss
+colnames(MMD) <- c("After","Before")
+write.table(MMD,"Minimal-Distance_845_combat2-1220.txt",sep = "\t", quote = F,row.names = F)
+
+###Global intergrative correlation/correlation of gene-gene correlation between pairs from X1, X2, ... , Xn
+###x: gene matrix
+ddd <- scale(d1)
+ds <- scale(L)
+
+databe <- as.data.frame(ddd)
+dataaf <- ds
+
+genegenecor <- function(x){
+  c <- c()
+  for (k in 1:(nrow(x)-1)) {
+    for (l in (k+1):nrow(x)) {
+      c <- c(c,cor(as.numeric(x[k,]),as.numeric(x[l,])))
+    }
+  }
+  return(c)
+}
+
+###data: gene matrix; m:cut-off value between corhorts, e.g: m <- c(0,33,60,105,133,149,267,280,589,625,650,695,744,939) for any 939samples gene matrix
+CCgene <- function(data,m){
+  z <- c()
+  be <- as.matrix(data)
+  for (i in 2:11) {
+    for (j in (i+1):12) {
+      x1 <- as.matrix(be[,(m[i-1]+1):m[i]])
+      x2 <- as.matrix(be[,(m[j-1]+1):m[j]])
+      z <- c(z, cor(genegenecor(x1),genegenecor(x2)))
+    }
+  }
+  return(z)
+}
+
+m <- c(0,33,60,105,133,149,267,280,589,625,650,845)
+
+
+set.seed(7777777)
+
+geneselected <- sample(1:11702,100)
+ss1 <- databe[geneselected,]
+ss2 <- dataaf[geneselected,]
+v <- CCgene(ss1,m)
+mean(v)
+#zz <- c(zz,mean(v))
+
+vs <- CCgene(ss2,m)
+mean(vs)
+#zzs <- c(zzs,mean(vs))
+
+write.table(v, "CCgene-random100-be.txt",sep = "\t", quote = F,row.names = F)
+write.table(vs, "CCgene-random100-af.txt",sep = "\t", quote = F, row.names = F)
+
+###Gene-gene correlation in separate datasets
+
+zggm <- c()
+m <- c(0,33,60,105,133,149,267,280,589,625,650,845)
+for (i in 2:12) {
+  x1 <- as.matrix(databe[,(m[i-1]+1):m[i]])
+  x2 <- as.matrix(dataaf[,(m[i-1]+1):m[i]])
+  zgg <- c()
+  for (j in 1:11702) {
+    zgg <- c(zgg, cor(x1[j,],x2[j,]))
+  }
+  zggm <- c(zggm, mean(zgg))
+}
+zggm
+write.table(zggm, "Gene-gene-correlation-11datasets.txt",sep = "\t", quote = F, row.names = F)
+
+

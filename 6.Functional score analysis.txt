@@ -1,0 +1,698 @@
+rm(list=ls())
+setwd("F:\\PDAC-Results\\F1\\Radar")
+
+data <- read.table("CC2-AI-Z-Tumor-T845-1-1220.txt", sep = "\t", quote = "\"'", header = T)
+pheno <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'", header = T)
+rownames(pheno) <- pheno$title 
+phsi <- pheno[pheno$sil_width.1 > 0.01,]
+phsi <- phsi[order(phsi$cluster6),]
+datasum <- data[,as.character(rownames(phsi))]
+phsi$cluster6
+
+###Function of calculating Scores of Cell-Cell analysis
+
+CCScore <- function(data, genelist){
+  reads_single_phase = data
+  reads_single_phase = as.matrix(reads_single_phase[rownames(reads_single_phase) %in% (genelist) ,])
+  combined_matrix = rbind(reads_single_phase,average=apply(reads_single_phase,2,mean))
+  cor_matrix = cor(t(combined_matrix))
+  cor_vector = cor_matrix[,dim(cor_matrix)[1]]
+  reads_single_phase_restricted = reads_single_phase[rownames(reads_single_phase) %in% names(cor_vector[cor_vector >= 0.1]),]
+  CCscore = apply(reads_single_phase_restricted,2,mean)
+  return(CCscore)
+}
+
+nrow(phsi[phsi$cluster6%in%"5",])
+
+###Function of mean
+m <- c(0,41,114,257,327,513,612)
+sum(phsi$cluster6%in%5)
+phsi$cluster6[257]
+
+meanC6 <- function(score){
+  m <- c(0,41,114,257,327,513,612)
+  c <- ""
+  for (i in 1:6) {
+    c <- c(c, mean(score[(m[i]+1):(m[i+1])]))
+  }
+  c <- c[-1]
+  c <- as.numeric(c)
+  return(c)
+}
+
+multicompare <- function(data,genelist,m){
+  CCScore <- function(data, genelist){
+    reads_single_phase = data
+    reads_single_phase = as.matrix(reads_single_phase[rownames(reads_single_phase) %in% (genelist) ,])
+    combined_matrix = rbind(reads_single_phase,average=apply(reads_single_phase,2,mean))
+    cor_matrix = cor(t(combined_matrix))
+    cor_vector = cor_matrix[,dim(cor_matrix)[1]]
+    reads_single_phase_restricted = reads_single_phase[rownames(reads_single_phase) %in% names(cor_vector[cor_vector >= 0.1]),]
+    CCscore = apply(reads_single_phase_restricted,2,mean)
+    return(CCscore)
+  }
+  score <- CCScore(data,genelist)
+  meanC6 <- function(score){
+    m <- c(0,41,114,257,327,513,612)
+    c <- ""
+    for (i in 1:6) {
+      c <- c(c, mean(score[(m[i]+1):(m[i+1])]))
+    }
+    c <- c[-1]
+    c <- as.numeric(c)
+    return(c)
+  }
+  mean6 <- meanC6(score)
+}
+
+
+
+
+
+R1collagensn <- multicompare(datasum ,collagens, m)
+
+
+meanC6(R1collagens)
+
+mean(R4ECM[1:5])
+
+###ECM Score
+matrisome_set = read.table("ecm_genes_human.txt", sep = "\t", header = TRUE)
+ecm = matrisome_set$Gene.Symbol[which(matrisome_set$Division %in% c("Core matrisome"))]
+ecm <- as.character(ecm)
+
+#collagens
+collagens = as.character(matrisome_set$Gene.Symbol[which(matrisome_set$Category %in% c("Collagens"))])
+R1collagens <- CCScore(datasum ,collagens)
+#glycoproteins
+Glycoproteins = as.character(matrisome_set$Gene.Symbol[which(matrisome_set$Category %in% c("ECM Glycoproteins"))])
+R2Glycoproteins <- CCScore(datasum ,Glycoproteins)
+#proteoglycans
+proteoglycans = as.character(matrisome_set$Gene.Symbol[which(matrisome_set$Category %in% c("Proteoglycans"))])
+R3proteoglycans <- CCScore(datasum ,proteoglycans)
+#ECM score
+ECM = as.character(matrisome_set$Gene.Symbol[which(matrisome_set$Division %in% c("Core matrisome"))])
+R4ECM <- CCScore(datasum ,ECM)
+
+mean(R4ECM)
+###EMT genes
+emtup = read.table("EMT-upGenes.txt", sep = "\t", header = TRUE)
+emt <- c(as.character(emtup$UP.REGULATED))
+emt <- emt[!duplicated(emt)]
+emtupgenes <- rownames(datasum[rownames(datasum)%in%emt,])
+R5emtupgenes <- CCScore(datasum ,emtupgenes)
+mean(R5emtupgenes)
+
+emtdown = read.table("EMT-downGenes.txt", sep = "\t", header = TRUE)
+emt <- c(as.character(emtdown$DOWN.REGULATED))
+emt <- emt[!duplicated(emt)]
+emtdowngenes <- rownames(datasum[rownames(datasum)%in%emt,])
+R6emtdowngenes <- CCScore(datasum ,emtdowngenes)
+mean(R6emtdowngenes)
+
+RA <- ""
+RA <- matrix(7777,6,6)
+RA <- as.data.frame(RA)
+colnames(RA) <- c("collagens", "glycoproteins", "proteoglycans",
+                  "ECM score", "EMT up-regulated genes", "EMT down-regulated genes")
+rownames(RA) <- c("C1", "C2", "C3", "C4", "C5", "C6")
+RA$collagens <- meanC6(R1collagens)
+RA$glycoproteins <- meanC6(R2Glycoproteins)
+RA$proteoglycans <- meanC6(R3proteoglycans)
+RA$`ECM score` <- meanC6(R4ECM)
+RA$`EMT up-regulated genes` <- meanC6(R5emtupgenes)
+RA$`EMT down-regulated genes` <- meanC6(R6emtdowngenes)
+
+
+tRA <- ""
+tRA <- matrix(7777,612,40)
+tRA <- as.data.frame(tRA)
+colnames(tRA) <- colnames(RA)
+rownames(tRA) <- colnames(datasum)
+
+tRA$collagens <- R1collagens
+tRA$glycoproteins <- R2Glycoproteins
+tRA$proteoglycans <- R3proteoglycans
+tRA$`ECM score` <- R4ECM
+tRA$`EMT up-regulated genes` <- R5emtupgenes
+tRA$`EMT down-regulated genes` <- R6emtdowngenes
+tRA$`Antigen Processing and Presentation` <- R7Antigen
+tRA$Antimicrobials <- R8Antimicrobials
+tRA$`BCR Signaling Pathway` <- R9BCR
+tRA$`Chemokine Receptors` <- R10Chemokine_Receptors
+tRA$Chemokines <- R11Chemokines
+tRA$`Cytokine Receptors` <- R12Cytokine_Receptors
+tRA$Cytokines <- R13Cytokines
+tRA$`Interferons Receptors` <- R14Interferons_Receptors
+tRA$Interferons <- R15Interferons
+tRA$`Interleukins Receptors` <- R16Interleukins_Receptors
+tRA$Interleukins <- R17Interleukins
+tRA$`Natural Killer Cell` <- R18Natural_Killer_Cell
+tRA$`TCR Signaling Pathway` <- R19TCR
+tRA$`TGF-b Family Members` <- R20TGF_b
+tRA$`TGF-b Family Members Receptors` <- R21TGF_bR
+tRA$`TNF Family Members` <- R22TNF
+tRA$`TNF Family Members Receptors` <- R23TNFR
+tRA$`CELL PROLIFERATION` <- R24CELL_PROLIFERATION
+tRA$`REGULATION OF CELL POPULATION PROLIFERATION` <- R25REGULATION_OF_CELL_POPULATION_PROLIFERATION
+tRA$`Cell phase` <- R27cellpahse
+tRA$Apoptosis <- R28Apoptosis
+tRA$Autophagy <- R29Autophagy
+tRA$Stemness <- R30Stemness
+tRA$`BILE ACID METABOLISM` <- R31BILE_ACID_METABOLISM
+tRA$`CHOLESTEROL HOMEOSTASIS` <- R32CHOLESTEROL_HOMEOSTASIS
+tRA$`FATTY ACID METABOLISM` <- R33FATTY_ACID_METABOLISM
+tRA$GLYCOLYSIS <- R34GLYCOLYSIS
+tRA$HYPOXIA <- R35HYPOXIA
+tRA$`KRAS SIGNALING DN` <- R36KRAS_SIGNALING_DN
+tRA$`KRAS SIGNALING UP` <- R37KRAS_SIGNALING_UP
+tRA$`PANCREAS BETA CELLS` <- R38PANCREAS_BETA_CELLS
+tRA$Squamous <- R39Squamous
+tRA$iCAF <- R40iCAF
+tRA$myCAF <- R41myCAF
+
+tt <- cbind(tRA, phsi$cluster6)
+colnames(tt)[41] <- "MSOP"
+class(tt$MSOP)
+tt$MSOP <- factor(tt$MSOP, labels=c("MS1", "MS2", "MS3",
+                                    "MS4", "MS5", "MS6"))
+
+ms <- ""
+for (i in 1:40) {
+  m = ""
+  for (j in 1:6) {
+    if (shapiro.test(tt[tt$MSOP=="MS1",j])$p.value<0.05){
+      m = 0
+    }
+  }
+  if (m != 0){
+    ms <- c(ms, i)
+  }
+}
+
+ms
+
+#BiocManager::install("agricolae")
+library("PMCMR")
+library("agricolae")
+
+
+
+k <- ""
+k <- kruskal.test(x = ano[,i], g = ano[,s+468], data = ano)
+tp[s,i] <- k$p.value
+
+y1=kruskal.test(tt$collagens~tt$MSOP,data=tt)
+y1
+
+ll <- posthoc.kruskal.nemenyi.test(tt$collagens~tt$MSOP,data=tt, dist = "Chisquare")
+ll$p.value
+
+
+l <- aov(tt$collagens~tt$MSOP,data=tt)
+out <- LSD.test(l,"tt$MSOP",p.adj="none")
+out
+m <- kruskal(tt$collagens,tt$MSOP,group = T)
+m
+
+comparison<-with(tt,kruskal(tt$collagens,tt$MSOP,group=TRUE, main="tt"))
+comparison1<-with(tt,kruskal(tt$glycoproteins,tt$MSOP,group=TRUE, main="tt"))
+comparison2<-with(tt,kruskal(tt$myCAF,tt$MSOP,group=TRUE, main="tt"))
+
+y1=kruskal.test(tt$collagens~tt$MSOP,data=tt)
+y1$p.value
+
+sss <- comparison$groups
+sss$order <- rownames(sss)
+paste(sss$order[1],as.character(sss[1,2]), sep = "-")
+
+ktest <- ""
+ktest <- matrix(7777,7,40)
+ktest <- as.data.frame(ktest)
+colnames(ktest) <- colnames(RA)
+rownames(ktest) <- c("Pvalue", "MS1", "MS2", "MS3"
+                     , "MS4", "MS5", "MS6")
+
+ktest1 <- ""
+ktest1 <- matrix(7777,7,40)
+ktest1 <- as.data.frame(ktest1)
+colnames(ktest1) <- colnames(RA)
+rownames(ktest1) <- c("Pvalue", "MS1", "MS2", "MS3"
+                     , "MS4", "MS5", "MS6")
+
+for (i in 1:40) {
+  ktest1[1,i] <- kruskal.test(tt[,i]~tt$MSOP,data=tt)$p.value
+  comparison<-with(tt,kruskal(tt[,i],tt$MSOP,group=TRUE, main="tt"))
+  s <- comparison$groups
+  s$order <- rownames(s)
+  ktest1[2,i] <- paste(s$order[1],as.character(s[1,2]), sep = "-")
+  ktest1[3,i] <- paste(s$order[2],as.character(s[2,2]), sep = "-")
+  ktest1[4,i] <- paste(s$order[3],as.character(s[3,2]), sep = "-")
+  ktest1[5,i] <- paste(s$order[4],as.character(s[4,2]), sep = "-")
+  ktest1[6,i] <- paste(s$order[5],as.character(s[5,2]), sep = "-")
+  ktest1[7,i] <- paste(s$order[6],as.character(s[6,2]), sep = "-")
+}
+ktest1 <- as.data.frame(t(ktest1))
+
+write.table(ktest, "ktest-MS1-6-abcmarker-0630.txt", sep = "\t", quote = F)
+write.table(RA, "Mean-score-MS1-6-0630.txt", sep = "\t", quote = F)
+write.table(ktest1, "ktest1-MS1-6-abcmarker-0701.txt", sep = "\t", quote = F)
+
+
+pk <- ""
+for (i in 1:40) {
+  ktest[1,i] <- kruskal.test(tt[,i]~tt$MSOP,data=tt)$p.value
+  comparison<-with(tt,kruskal(tt[,i],tt$MSOP,group=TRUE, main="tt"))
+  s <- comparison$groups
+  ktest[2,i] <- as.character(s["MS1",2])
+  ktest[3,i] <- as.character(s["MS2",2])
+  ktest[4,i] <- as.character(s["MS3",2])
+  ktest[5,i] <- as.character(s["MS4",2])
+  ktest[6,i] <- as.character(s["MS5",2])
+  ktest[7,i] <- as.character(s["MS6",2])
+}
+
+
+
+
+library(agricolae)
+data(corn)
+str(corn)
+comparison<-with(corn,kruskal(observation,method,group=TRUE, main="corn"))
+comparison<-with(corn,kruskal(observation,method,p.adj="bon",group=FALSE, main="corn"))
+
+
+
+###Radar plot test
+
+
+###immune part 17bars
+#1Antigen
+immune = read.table("Antigen_Processing_and_Presentation.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Antigen1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R7Antigen <- CCScore(datasum ,Antigen1)
+meanC6(R7Antigen)
+RA$`Antigen Processing and Presentation` <- meanC6(R7Antigen)
+#2Antigen
+immune = read.table("Antimicrobials.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Antimicrobials1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R8Antimicrobials <- CCScore(datasum ,Antimicrobials1)
+meanC6(R8Antimicrobials)
+RA$Antimicrobials <- meanC6(R8Antimicrobials)
+
+#3BCR
+immune = read.table("BCR_Signaling_Pathway.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+BCR1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R9BCR <- CCScore(datasum ,BCR1)
+meanC6(R9BCR)
+RA$`BCR Signaling Pathway` <- meanC6(R9BCR)
+
+#4Chemokine_Receptors
+immune = read.table("Chemokine_Receptors.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Chemokine_Receptors1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R10Chemokine_Receptors <- CCScore(datasum ,Chemokine_Receptors1)
+meanC6(R10Chemokine_Receptors)
+RA$`Chemokine Receptors` <- meanC6(R10Chemokine_Receptors)
+
+#5Chemokines
+immune = read.table("Chemokines.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Chemokines1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R11Chemokines <- CCScore(datasum ,Chemokines1)
+meanC6(R11Chemokines)
+RA$Chemokines <- meanC6(R11Chemokines)
+
+#6Cytokines
+immune = read.table("Cytokine_Receptors.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Cytokine_Receptors1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R12Cytokine_Receptors <- CCScore(datasum ,Cytokine_Receptors1)
+meanC6(R12Cytokine_Receptors)
+RA$`Cytokine Receptors` <- meanC6(R12Cytokine_Receptors)
+
+#7Cytokines
+immune = read.table("Cytokines.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Cytokines1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R13Cytokines <- CCScore(datasum ,Cytokines1)
+meanC6(R13Cytokines)
+RA$Cytokines <- meanC6(R13Cytokines)
+
+#8Interferons
+immune = read.table("Interferons_Receptors.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Interferons_Receptors1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R14Interferons_Receptors <- CCScore(datasum ,Interferons_Receptors1)
+meanC6(R14Interferons_Receptors)
+RA$`Interferons Receptors` <- meanC6(R14Interferons_Receptors)
+
+#9Interferons
+immune = read.table("Interferons.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Interferons1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R15Interferons <- CCScore(datasum ,Interferons1)
+meanC6(R15Interferons)
+RA$Interferons <- meanC6(R15Interferons)
+
+#10Interleukins_Receptors
+immune = read.table("Interleukins_Receptors.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Interleukins_Receptors1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R16Interleukins_Receptors <- CCScore(datasum ,Interleukins_Receptors1)
+meanC6(R16Interleukins_Receptors)
+RA$`Interleukins Receptors` <- meanC6(R16Interleukins_Receptors)
+
+#11Interleukins
+immune = read.table("Interleukins.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Interleukins1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R17Interleukins <- CCScore(datasum ,Interleukins1)
+meanC6(R17Interleukins)
+RA$Interleukins <- meanC6(R17Interleukins)
+
+#12Natural_Killer_Cell
+immune = read.table("Natural_Killer_Cell.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+Natural_Killer_Cell1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R18Natural_Killer_Cell <- CCScore(datasum ,Natural_Killer_Cell1)
+meanC6(R18Natural_Killer_Cell)
+RA$`Natural Killer Cell` <- meanC6(R18Natural_Killer_Cell)
+
+#13TCR
+immune = read.table("TCR_Signaling_Pathway.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+TCR1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R19TCR <- CCScore(datasum ,TCR1)
+meanC6(R19TCR)
+RA$`TCR Signaling Pathway` <- meanC6(R19TCR)
+
+#14TGF_b
+immune = read.table("TGF-b_Family_Members.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+TGF_b1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R20TGF_b <- CCScore(datasum ,TGF_b1)
+meanC6(R20TGF_b)
+RA$`TGF-b Family Members` <- meanC6(R20TGF_b)
+
+#15TGF_bR
+immune = read.table("TGF-b_Family_Members_Receptors.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+TGF_bR1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R21TGF_bR <- CCScore(datasum ,TGF_bR1)
+meanC6(R21TGF_bR)
+RA$`TGF-b Family Members Receptors` <- meanC6(R21TGF_bR)
+
+#16TNF
+immune = read.table("TNF_Family_Members.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+TNF1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R22TNF <- CCScore(datasum ,TNF1)
+meanC6(R22TNF)
+RA$`TNF Family Members` <- meanC6(R22TNF)
+
+#17TNF
+immune = read.table("TNF_Family_Members_Receptors.txt", sep = "\t", header = TRUE)
+immunegenes <- as.character(immune$Symbol)
+immunegenes <- immunegenes[!duplicated(immunegenes)]
+TNFR1 <- rownames(datasum[rownames(datasum)%in%immunegenes,])
+R23TNFR <- CCScore(datasum ,TNFR1)
+meanC6(R23TNFR)
+RA$`TNF Family Members Receptors` <- meanC6(R23TNFR)
+
+###Proliferation and Cell phase analysis
+###Gene sets from GSEA/GO
+##1CELL_PROLIFERATION
+proliferation = read.table("geneset-CELL_PROLIFERATION_GO_0008283.txt", sep = "\t", header = TRUE)
+proliferation <- c(as.character(proliferation[-1,]))
+proliferation <- rownames(datasum[rownames(datasum)%in%proliferation,])
+R24CELL_PROLIFERATION <- CCScore(datasum ,proliferation)
+meanC6(R24CELL_PROLIFERATION)
+RA$`CELL PROLIFERATION` <- meanC6(R24CELL_PROLIFERATION)
+
+##2REGULATION_OF_CELL_POPULATION_PROLIFERATION
+proliferation = read.table("geneset-GO_REGULATION_OF_CELL_POPULATION_PROLIFERATION.txt", sep = "\t", header = TRUE)
+proliferation <- c(as.character(proliferation[-1,]))
+proliferation <- rownames(datasum[rownames(datasum)%in%proliferation,])
+R25REGULATION_OF_CELL_POPULATION_PROLIFERATION <- CCScore(datasum ,proliferation)
+meanC6(R25REGULATION_OF_CELL_POPULATION_PROLIFERATION)
+RA$`REGULATION OF CELL POPULATION PROLIFERATION` <- meanC6(R25REGULATION_OF_CELL_POPULATION_PROLIFERATION)
+
+##3
+proliferation = read.table("geneset-GOBP_CELL_POPULATION_PROLIFERATION.txt", sep = "\t", header = TRUE)
+proliferation <- c(as.character(proliferation[-1,]))
+proliferation <- rownames(datasum[rownames(datasum)%in%proliferation,])
+R26GOBP_CELL_POPULATION_PROLIFERATION <- CCScore(datasum ,proliferation)
+meanC6(R26GOBP_CELL_POPULATION_PROLIFERATION)
+
+###Cell Phase
+cellpahse = read.table("Cell-phase-genes.txt", sep = "\t", header = TRUE)
+cellpahse <- c(as.character(cellpahse$human.gene))
+cellpahse <- cellpahse[!duplicated(cellpahse)]
+cellpahse <- rownames(datasum[rownames(datasum)%in%cellpahse,])
+R27cellpahse <- CCScore(datasum ,cellpahse)
+meanC6(R27cellpahse)
+RA$`Cell phase` <- meanC6(R27cellpahse)
+
+###Apoptosis
+Apoptosis = read.table("geneset_HALLMARK_APOPTOSIS.txt", sep = "\t", header = TRUE)
+Apoptosis <- c(as.character(Apoptosis[-1,]))
+Apoptosis <- Apoptosis[!duplicated(Apoptosis)]
+Apoptosis <- rownames(datasum[rownames(datasum)%in%Apoptosis,])
+R28Apoptosis <- CCScore(datasum ,Apoptosis)
+meanC6(R28Apoptosis)
+RA$Apoptosis <- meanC6(R28Apoptosis)
+
+###Autophagy
+Autophagy = read.table("geneset-REACTOME_AUTOPHAGY.txt", sep = "\t", header = TRUE)
+Autophagy <- c(as.character(Autophagy[-1,]))
+Autophagy <- Autophagy[!duplicated(Autophagy)]
+Autophagy <- rownames(datasum[rownames(datasum)%in%Autophagy,])
+R29Autophagy <- CCScore(datasum ,Autophagy)
+meanC6(R29Autophagy)
+RA$Autophagy <- meanC6(R29Autophagy)
+
+###Stemness
+Stemness = read.table("geneset_MALTA_CURATED_STEMNESS_MARKERS.txt", sep = "\t", header = TRUE)
+Stemness <- c(as.character(Stemness[-1,]))
+Stemness <- Stemness[!duplicated(Stemness)]
+Stemness <- rownames(datasum[rownames(datasum)%in%Stemness,])
+R30Stemness <- CCScore(datasum ,Stemness)
+meanC6(R30Stemness)
+RA$Stemness <- meanC6(R30Stemness)
+
+###Metabolism
+##1
+Metabolism = read.table("geneset-HALLMARK_BILE_ACID_METABOLISM.txt", sep = "\t", header = TRUE)
+Metabolism <- c(as.character(Metabolism[-1,]))
+Metabolism <- Metabolism[!duplicated(Metabolism)]
+BILE_ACID_METABOLISM <- rownames(datasum[rownames(datasum)%in%Metabolism,])
+R31BILE_ACID_METABOLISM <- CCScore(datasum ,BILE_ACID_METABOLISM)
+meanC6(R31BILE_ACID_METABOLISM)
+RA$`BILE ACID METABOLISM` <- meanC6(R31BILE_ACID_METABOLISM)
+
+##2CHOLESTEROL_HOMEOSTASIS
+Metabolism = read.table("geneset-HALLMARK_CHOLESTEROL_HOMEOSTASIS.txt", sep = "\t", header = TRUE)
+Metabolism <- c(as.character(Metabolism[-1,]))
+Metabolism <- Metabolism[!duplicated(Metabolism)]
+CHOLESTEROL_HOMEOSTASIS <- rownames(datasum[rownames(datasum)%in%Metabolism,])
+R32CHOLESTEROL_HOMEOSTASIS <- CCScore(datasum ,CHOLESTEROL_HOMEOSTASIS)
+meanC6(R32CHOLESTEROL_HOMEOSTASIS)
+RA$`CHOLESTEROL HOMEOSTASIS` <- meanC6(R32CHOLESTEROL_HOMEOSTASIS)
+
+##3FATTY_ACID_METABOLISM
+Metabolism = read.table("geneset-HALLMARK_FATTY_ACID_METABOLISM.txt", sep = "\t", header = TRUE)
+Metabolism <- c(as.character(Metabolism[-1,]))
+Metabolism <- Metabolism[!duplicated(Metabolism)]
+FATTY_ACID_METABOLISM <- rownames(datasum[rownames(datasum)%in%Metabolism,])
+R33FATTY_ACID_METABOLISM <- CCScore(datasum ,FATTY_ACID_METABOLISM)
+meanC6(R33FATTY_ACID_METABOLISM)
+RA$`FATTY ACID METABOLISM` <- meanC6(R33FATTY_ACID_METABOLISM)
+
+##4GLYCOLYSIS
+Metabolism = read.table("geneset-HALLMARK_GLYCOLYSIS.txt", sep = "\t", header = TRUE)
+Metabolism <- c(as.character(Metabolism[-1,]))
+Metabolism <- Metabolism[!duplicated(Metabolism)]
+GLYCOLYSIS <- rownames(datasum[rownames(datasum)%in%Metabolism,])
+R34GLYCOLYSIS <- CCScore(datasum ,GLYCOLYSIS)
+meanC6(R34GLYCOLYSIS)
+RA$GLYCOLYSIS <- meanC6(R34GLYCOLYSIS)
+
+###HYPOXIA
+HYPOXIA = read.table("geneset-HALLMARK_HYPOXIA.txt", sep = "\t", header = TRUE)
+HYPOXIA <- c(as.character(HYPOXIA[-1,]))
+HYPOXIA <- HYPOXIA[!duplicated(HYPOXIA)]
+HYPOXIA <- rownames(datasum[rownames(datasum)%in%HYPOXIA,])
+R35HYPOXIA <- CCScore(datasum ,HYPOXIA)
+meanC6(R35HYPOXIA)
+RA$HYPOXIA <- meanC6(R35HYPOXIA)
+
+###KRAS_SIGNALING_DN
+KRAS_SIGNALING_DN = read.table("geneset-HALLMARK_KRAS_SIGNALING_DN.txt", sep = "\t", header = TRUE)
+KRAS_SIGNALING_DN <- c(as.character(KRAS_SIGNALING_DN[-1,]))
+KRAS_SIGNALING_DN <- KRAS_SIGNALING_DN[!duplicated(KRAS_SIGNALING_DN)]
+KRAS_SIGNALING_DN <- rownames(datasum[rownames(datasum)%in%KRAS_SIGNALING_DN,])
+R36KRAS_SIGNALING_DN <- CCScore(datasum ,KRAS_SIGNALING_DN)
+meanC6(R36KRAS_SIGNALING_DN)
+RA$`KRAS SIGNALING DN` <- meanC6(R36KRAS_SIGNALING_DN)
+
+###KRAS_SIGNALING_UP
+KRAS_SIGNALING_UP = read.table("geneset-HALLMARK_KRAS_SIGNALING_UP.txt", sep = "\t", header = TRUE)
+KRAS_SIGNALING_UP <- c(as.character(KRAS_SIGNALING_UP[-1,]))
+KRAS_SIGNALING_UP <- KRAS_SIGNALING_UP[!duplicated(KRAS_SIGNALING_UP)]
+KRAS_SIGNALING_UP <- rownames(datasum[rownames(datasum)%in%KRAS_SIGNALING_UP,])
+R37KRAS_SIGNALING_UP <- CCScore(datasum ,KRAS_SIGNALING_UP)
+meanC6(R37KRAS_SIGNALING_UP)
+RA$`KRAS SIGNALING UP` <- meanC6(R37KRAS_SIGNALING_UP)
+
+###PANCREAS_BETA_CELLS
+PANCREAS_BETA_CELLS = read.table("geneset-HALLMARK_PANCREAS_BETA_CELLS.txt", sep = "\t", header = TRUE)
+PANCREAS_BETA_CELLS <- c(as.character(PANCREAS_BETA_CELLS[-1,]))
+PANCREAS_BETA_CELLS <- PANCREAS_BETA_CELLS[!duplicated(PANCREAS_BETA_CELLS)]
+PANCREAS_BETA_CELLS <- rownames(datasum[rownames(datasum)%in%PANCREAS_BETA_CELLS,])
+R38PANCREAS_BETA_CELLS <- CCScore(datasum ,PANCREAS_BETA_CELLS)
+meanC6(R38PANCREAS_BETA_CELLS)
+RA$`PANCREAS BETA CELLS` <- meanC6(R38PANCREAS_BETA_CELLS)
+
+###Squamous
+Squamous = read.table("Squa-1061-LFC0-P005.txt", sep = "\t", header = F)
+Squamous <- c(as.character(Squamous$V1))
+Squamous <- Squamous[!duplicated(Squamous)]
+Squamous <- rownames(datasum[rownames(datasum)%in%Squamous,])
+R39Squamous <- CCScore(datasum ,Squamous)
+meanC6(R39Squamous)
+RA$Squamous <- meanC6(R39Squamous)
+
+###CAFs
+fat <- read.table("FBcells.txt", sep = "\t", header = TRUE,stringsAsFactors = F)
+f1 <- fat[fat[,1]=="iCAF",2]
+f2 <- fat[fat[,1]=="myCAF",2]
+###1
+f1 <- f1[!duplicated(f1)]
+f1 <- rownames(datasum[rownames(datasum)%in%f1,])
+R40iCAF <- CCScore(datasum ,f1)
+meanC6(R40iCAF)
+RA$iCAF <- meanC6(R40iCAF)
+
+###2
+f2 <- f2[!duplicated(f2)]
+f2 <- rownames(datasum[rownames(datasum)%in%f2,])
+R41myCAF <- CCScore(datasum ,f2)
+meanC6(R41myCAF)
+RA$myCAF <- meanC6(R41myCAF)
+
+save(RA, file = "Functionalscore-40genesets-0427-N")
+save.image(file = "Functionalscore-40genesets-0427.Rdata")
+
+test <- RA
+test <- as.data.frame(t(test))
+
+test$FunctionPart <- c(rep("Fibrosis related",6), rep("Immune related",17), 
+                       rep("Proliferation and Apoptosis related", 6), 
+                       rep("Metabolism related",5), rep("Others" , 4), rep("Fibrosis related",2))
+test$Geneset <- rownames(test)
+class(test$FunctionPart)
+class(test$Geneset)
+
+
+library(tidyverse)
+library(viridis)
+# Transform data in a tidy format (long format)
+test <- test %>% gather(key = "Classification", value="value", -c(7,8)) 
+
+colnames(test) <- c("group", "individual", "observation", "value")
+
+data <- test
+# Set a number of 'empty bar' to add at the end of each group
+empty_bar <- 2
+nObsType <- nlevels(as.factor(data$group))
+data$group <- as.factor(data$group)
+to_add <- data.frame( matrix(NA, empty_bar*nlevels(data$group)*nObsType, ncol(data)) )
+colnames(to_add) <- colnames(data)
+to_add$group <- rep(levels(data$group), each=empty_bar*nObsType )
+data <- rbind(data, to_add)
+data <- data %>% arrange(group, individual)
+data$id <- rep( seq(1, nrow(data)/nObsType) , each=nObsType)
+
+# Get the name and the y position of each label
+label_data <- data %>% group_by(id, individual) %>% summarize(tot=sum(value))
+number_of_bar <- nrow(label_data)
+angle <- 90 - 360 * (label_data$id-0.5) /number_of_bar     # I substract 0.5 because the letter must have the angle of the center of the bars. Not extreme right(1) or extreme left (0)
+label_data$hjust <- ifelse( angle < -90, 1, 0)
+label_data$angle <- ifelse(angle < -90, angle+180, angle)
+
+# prepare a data frame for base lines
+base_data <- data %>% 
+  group_by(group) %>% 
+  summarize(start=min(id), end=max(id) - empty_bar) %>% 
+  rowwise() %>% 
+  mutate(title=mean(c(start, end)))
+
+# prepare a data frame for grid (scales)
+grid_data <- base_data
+grid_data$end <- grid_data$end[ c( nrow(grid_data), 1:nrow(grid_data)-1)] + 1
+grid_data$start <- grid_data$start - 1
+grid_data <- grid_data[-1,]
+
+# Make the plot
+p <- ggplot(data) +      
+  
+  # Add the stacked bar
+  geom_bar(aes(x=as.factor(id), y=value, fill=observation), stat="identity", alpha=0.5) +
+  scale_fill_viridis(discrete=TRUE) +
+  
+  # Add a val=100/75/50/25 lines. I do it at the beginning to make sur barplots are OVER it.
+  #geom_segment(data=grid_data, aes(x = end, y = 0, xend = start, yend = 0), colour = "grey", alpha=1, size=0.3 , inherit.aes = FALSE ) +
+  #geom_segment(data=grid_data, aes(x = end, y = 50, xend = start, yend = 50), colour = "grey", alpha=1, size=0.3 , inherit.aes = FALSE ) +
+  #geom_segment(data=grid_data, aes(x = end, y = 100, xend = start, yend = 100), colour = "grey", alpha=1, size=0.3 , inherit.aes = FALSE ) +
+  #geom_segment(data=grid_data, aes(x = end, y = 150, xend = start, yend = 150), colour = "grey", alpha=1, size=0.3 , inherit.aes = FALSE ) +
+  #geom_segment(data=grid_data, aes(x = end, y = 200, xend = start, yend = 200), colour = "grey", alpha=1, size=0.3 , inherit.aes = FALSE ) +
+  
+  # Add text showing the value of each 100/75/50/25 lines
+  #ggplot2::annotate("text", x = rep(max(data$id),5), y = c(0, 50, 100, 150, 200), label = c("0", "50", "100", "150", "200") , color="grey", size=6 , angle=0, fontface="bold", hjust=1) +
+  
+  ylim(-150,max(label_data$tot, na.rm=T)) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank(),
+    plot.margin = unit(rep(-1,4), "cm") 
+  ) +
+  coord_polar() +
+  
+  # Add labels on top of each bar
+  geom_text(data=label_data, aes(x=id, y=tot+10, label=individual, hjust=hjust), color="black", fontface="bold",alpha=0.6, size=5, angle= label_data$angle, inherit.aes = FALSE ) +
+  
+  # Add base line information
+  geom_segment(data=base_data, aes(x = start, y = -5, xend = end, yend = -5), colour = "black", alpha=0.8, size=0.6 , inherit.aes = FALSE )  +
+  geom_text(data=base_data, aes(x = title, y = -18, label=group), hjust=c(1,1,0,0), colour = "black", alpha=0.8, size=4, fontface="bold", inherit.aes = FALSE)
+
+
+p
+# Save at png
+ggsave(p, file="output.png", width=10, height=10)
+
+
+
+###Source from https://jdblischak.github.io/singleCellSeq/analysis/cell-cycle.html

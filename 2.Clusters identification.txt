@@ -1,0 +1,30 @@
+setwd("/home/pmc_307/LLX/T845/20210420")
+x <- ""
+x <- read.table("CC2-AI-Z-Tumor-T845-1-1220.txt", sep = "\t", quote = "\"'")
+library(ConsensusClusterPlus)
+t <- as.matrix(x)
+results = ConsensusClusterPlus(t,maxK=12,reps=1000,pItem=0.8,pFeature=1, title = "Consensus-T650"
+                               ,clusterAlg="km",distance="euclidean",seed=7777777,plot="png")
+class <- results[[4]][["consensusClass"]]
+write.table(class, "tumorclass4.txt", sep = "\t", quote = F)
+class1 <- results[[5]][["consensusClass"]]
+write.table(class, "tumorclass5.txt", sep = "\t", quote = F)
+class2 <- results[[6]][["consensusClass"]]
+write.table(class, "tumorclass6.txt", sep = "\t", quote = F)
+
+###Calculate the silhouette width
+rm(list=ls())
+setwd("F:\\T1220\\SI")
+
+
+data1 <- read.table("CC2-AI-Z-Tumor-T845-1-1220.txt", sep = "\t", quote = "\"'", header = T)
+class1 <- read.table("tumorclass6-845.txt", sep = "\t", quote = "\"'", header = T)
+colnames(class1)[2] <- "Cluster"
+
+library(cluster)
+t939 <- dist(t(data1), method = "euclidean")
+x939 <- class1$Cluster
+s939 <- silhouette(x939, dist = t939)
+
+write.table(s939,"silhouettet_845_cluster6.txt",sep = "\t", quote = F)
+

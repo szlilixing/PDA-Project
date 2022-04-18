@@ -1,0 +1,674 @@
+rm(list = ls())  #
+setwd("F:\\PDAC-Results\\CIBERSORTx")
+
+library(ggplot2)
+library(tidyverse)
+library(reshape2)
+library(RColorBrewer)
+library(ggsci)
+#devtools::install_github("const-ae/ggsignif")
+library(ggsignif)
+library(ggthemes)
+library(grid)
+
+cafs <- read.table("CIBERSORTx_Job5_Adjusted.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = F)
+
+
+rownames(cafs) <- cafs$Mixture
+pheno <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'", header = T)
+phsi <- pheno[pheno$sil_width.1>0.01,]
+rownames(phsi) <- phsi$title
+phsi <- phsi[order(phsi$cluster6),]
+cafs <- cafs[as.character(phsi$title),]
+cafs$Patient <- phsi$cluster6
+cafs <- cafs[cafs$P.value < 0.05,]
+write.table(cafs, "CAF_3clusters.txt", sep = "\t", quote = F)
+
+cafs <- read.table("CAF-3CAF.txt", sep = "\t", quote = "\"'", header = T)
+
+###################################################################################################
+#CAF comparison among MSOP subtypes 20210918————————————————————————————————————————
+#'star method'
+#'
+tt <- cafs[,c(2:4,8)]
+colnames(tt)[4] <- "MSOP"
+class(tt$MSOP)
+tt$MSOP <- factor(tt$MSOP, labels=c("MS1", "MS2", "MS3",
+                                    "MS4", "MS5", "MS6"))
+
+
+shapiro.test(tt[tt$MSOP=="MS2",1])$p.value
+
+S <- c("MS1", "MS2", "MS3",
+       "MS4", "MS5", "MS6")
+
+
+anovacheck <- function(cibtt){
+  ms <- ""
+  for (i in 1:(ncol(cibtt)-1)) {
+    m = ""
+    for (j in S) {
+      ###excluding same value
+      if (apply(as.data.frame(cibtt[cibtt$MSOP==j,i]),2,function(x){sum(duplicated(x))+1})==length(cibtt[cibtt$MSOP==j,i])){
+        ms <- c(ms, paste(i,j))
+      }else if (shapiro.test(cibtt[cibtt$MSOP==j,i])$p.value<0.05){
+        m = 0
+      }
+    }
+    
+    if (m != 0){
+      if(bartlett.test(cibtt[,i]~cibtt$MSOP)$p.value>0.05){
+        ms <- c(ms, i)
+      }
+    }
+  }
+  return(ms)
+}
+
+abc_anov_MSOP <- function(tt){
+  ktest1 <- ""
+  ktest1 <- matrix(7777,7,ncol(tt)-1)
+  ktest1 <- as.data.frame(ktest1)
+  colnames(ktest1) <- colnames(tt)[1:(ncol(tt)-1)]
+  #rownames(ktest1) <- c("Pvalue", "MS1", "MS2", "MS3"
+  #                      , "MS4", "MS5", "MS6")
+  library(agricolae)
+  for (i in 1:(ncol(tt)-1)) {
+    ktest1[1,i] <- aov(tt[,i]~tt$MSOP,data=tt)$p.value
+    comparison<-with(tt,anova(tt[,i],tt$MSOP,group=TRUE, main="tt"))
+    s <- comparison$groups
+    s$order <- rownames(s)
+    ktest1[2,i] <- paste(s$order[1],as.character(s[1,2]), sep = "-")
+    ktest1[3,i] <- paste(s$order[2],as.character(s[2,2]), sep = "-")
+    ktest1[4,i] <- paste(s$order[3],as.character(s[3,2]), sep = "-")
+    ktest1[5,i] <- paste(s$order[4],as.character(s[4,2]), sep = "-")
+    ktest1[6,i] <- paste(s$order[5],as.character(s[5,2]), sep = "-")
+    ktest1[7,i] <- paste(s$order[6],as.character(s[6,2]), sep = "-")
+  }
+  return(ktest1)
+}
+
+abcMSOP <- function(tt){
+  ktest1 <- ""
+  ktest1 <- matrix(7777,7,ncol(tt)-1)
+  ktest1 <- as.data.frame(ktest1)
+  colnames(ktest1) <- colnames(tt)[1:(ncol(tt)-1)]
+  #rownames(ktest1) <- c("Pvalue", "MS1", "MS2", "MS3"
+  #                      , "MS4", "MS5", "MS6")
+  library(agricolae)
+  for (i in 1:(ncol(tt)-1)) {
+    ktest1[1,i] <- kruskal.test(tt[,i]~tt$MSOP,data=tt)$p.value
+    comparison<-with(tt,kruskal(tt[,i],tt$MSOP,group=TRUE, main="tt"))
+    s <- comparison$groups
+    s$order <- rownames(s)
+    ktest1[2,i] <- paste(s$order[1],as.character(s[1,2]), sep = "-")
+    ktest1[3,i] <- paste(s$order[2],as.character(s[2,2]), sep = "-")
+    ktest1[4,i] <- paste(s$order[3],as.character(s[3,2]), sep = "-")
+    ktest1[5,i] <- paste(s$order[4],as.character(s[4,2]), sep = "-")
+    ktest1[6,i] <- paste(s$order[5],as.character(s[5,2]), sep = "-")
+    ktest1[7,i] <- paste(s$order[6],as.character(s[6,2]), sep = "-")
+  }
+  return(ktest1)
+}
+
+
+anovacheck(tt)
+
+kk <- abcMSOP(tt)
+
+write.table(kk, "MSOP-CAFs-MS1-6-abcmarker-0918.txt", sep = "\t", quote = F)
+
+pheno
+cafs$Mixture
+pcafs <- phsi[as.character(cafs$Mixture),]
+pcafs <- cbind(pcafs,cafs)
+is.na(pcafs$Survival.Time)
+pcafs <- pcafs[!((is.na(pcafs$Survival.Time))&(is.na(pcafs$Status))),]
+
+library(survival)
+library(survminer)
+pcafs$Fibroblast.1
+pcafs$Survival.Time
+pcafs$Status
+pcafs$time <- pcafs$Survival.Time
+pcafs$status <- pcafs$Status
+
+library(survminer)
+#####Determine the optimal cutpoint of variables
+res.cutx <- surv_cutpoint(pcafs, time = "time", event = "status",
+                          variables = "Fibroblast.3")
+summary(res.cutx)
+#####Plot cutpoint for DEPDC1
+plot(res.cutx, "Fibroblast.3", palette = "npg")
+#####Categorize variables
+res.catx <- surv_categorize(res.cutx)
+head(res.catx)
+####Fit survival curves and visualize
+library("survival")
+fit <- survfit(Surv(time, status) ~Fibroblast.3, data = res.catx)
+p33 <- ggsurvplot(fit, data = res.catx, risk.table = TRUE, conf.int = F
+           ,pval = TRUE,legend.labs = c("HIGH infiltration", "LOW infiltration"),title = "Fibroblast 3", 
+           palette = "lancet")
+p33
+###6:3
+
+###################################################################################################
+#colnames(cafs) <- c("Mixture", "Fibroblast 1", "Fibroblast 2", "Fibroblast 3","Patient")
+#cafs <- as.data.frame(t(cafs))
+#colnames(cafs) <- c("C1", "C2", "C3", "C4", "C5", "C6")
+#cafs <- cafs[-1,]
+#cafs$CAF <- rownames(cafs)
+#cafs$CAF
+#class(cafs$CAF)
+class(cafs$`Fibroblast 1`)
+#cafs$CAF <- factor(cafs$CAF, labels = c("Fibroblast.1", "Fibroblast.2", "Fibroblast.3", "Fibroblast.4", "Fibroblast.5"))
+sum(as.numeric(cafs[4,2:4]))
+cafs$Patient <- factor(cafs$Patient, labels = c("C1", "C2", "C3", "C4", "C5", "C6"))
+#cafs <- cafs[,c(2,3,4,8)]
+library(reshape2)
+phylum.gg <- melt(cafs, id.vars="Patient", variable.name="CAF", value.name="Abundance")
+
+class(phylum.gg$CAF)
+class(phylum.gg$Patient)
+colnames(phylum.gg)[1] <- "Classification"
+phylum.gg$CAF
+class(phylum.gg$CAF) 
+phylum.gg$CAF <- factor(phylum.gg$CAF, labels = c("Fibroblast 1", "Fibroblast 2", "Fibroblast 3"))
+
+#phylum.gg[phylum.gg$Classification=="C1",]$Abundance <- phylum.gg[phylum.gg$Classification=="C1",]$Abundance/nrow(phylum.gg[phylum.gg$Classification=="C1",])
+#phylum.gg[phylum.gg$Classification=="C2",]$Abundance <- phylum.gg[phylum.gg$Classification=="C2",]$Abundance/nrow(phylum.gg[phylum.gg$Classification=="C2",])
+#phylum.gg[phylum.gg$Classification=="C3",]$Abundance <- phylum.gg[phylum.gg$Classification=="C3",]$Abundance/nrow(phylum.gg[phylum.gg$Classification=="C3",])
+#phylum.gg[phylum.gg$Classification=="C4",]$Abundance <- phylum.gg[phylum.gg$Classification=="C4",]$Abundance/nrow(phylum.gg[phylum.gg$Classification=="C4",])
+#phylum.gg[phylum.gg$Classification=="C5",]$Abundance <- phylum.gg[phylum.gg$Classification=="C5",]$Abundance/nrow(phylum.gg[phylum.gg$Classification=="C5",])
+#phylum.gg[phylum.gg$Classification=="C6",]$Abundance <- phylum.gg[phylum.gg$Classification=="C6",]$Abundance/nrow(phylum.gg[phylum.gg$Classification=="C6",])
+
+library(ggplot2)
+windowsFonts(Times=windowsFont("Times New Roman"))
+#cols <- c("Fibroblast 1"="#A1CD88","Fibroblast 2"="#6578BA","Fibroblast 3"="#9D66A8","Fibroblast 4"="#C9704A","Fibroblast 5"="#CCB860")
+cols <- c("Fibroblast 1"="#D76F6B","Fibroblast 2"="#94943C","Fibroblast 3"="#38A679")
+library(ggsci)
+cols <- pal_lancet("lanonc", alpha = 0.75)(3)
+  
+ggplot(phylum.gg, aes(x = Classification, y = Abundance, fill=CAF)) +
+  geom_bar(stat = "identity")+scale_fill_manual(values = cols)+
+  #facet_wrap(~variable, scales = "free_y", ncol = 1)
+  # facet_grid(~variable, scales = "free")
+  #  theme_economist(base_size=14)+
+  #theme_bw()+
+  #  scale_x_discrete(limits=c("C1", "C2", "C3", "C4", "C5", "C6"), expand = c(0.1,0.25))+
+  labs(fill = "CAF Types")+
+  theme(
+    axis.text.y.left = element_text(size = 12,face = "bold"), 
+    axis.text.x=element_text(size=12,face = "bold"),
+    #axis.title.x = element_blank(),
+    #axis.title.y = element_blank(),
+    #panel.border = element_rect(fill=NA,color="black", size=0.5, linetype="solid"),
+    #strip.background = element_rect(color = "white", fill = "white"),
+    panel.grid = element_blank(),
+    #panel.background = element_rect(fill="white"),
+    #panel.background = element_blank(),
+    #axis.ticks.x = element_blank(),
+    title = element_text(size=12,face = "bold"),
+    #legend.position = 'none',
+    #legend.position = c("0.89" ,"0.755"),
+    legend.title = element_text(size = 12,face = "bold"),
+    legend.text = element_text(size = 12),
+    #legend.spacing = unit(0.4, "cm"),
+    #legend.key.size = unit(0.25, "cm"),
+    #    legend.key.height  = unit(0.5, "cm"),
+    #legend.key = element_blank(),
+    #legend.background = element_rect(fill="white", size=0.5
+    #                                 , colour = "black", linetype="dotted"
+    #                                )
+  )
+
+
+
+cafs <- read.table("CIBERSORTx_Job5_Adjusted.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = F)
+rownames(cafs) <- cafs$Mixture
+pheno <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'", header = T)
+phsi <- pheno[pheno$sil_width.1>0.01,]
+rownames(phsi) <- phsi$title
+phsi <- phsi[order(phsi$cluster6),]
+cafs <- cafs[as.character(phsi$title),]
+cafs$Patient <- phsi$cluster6
+cafs <- cafs[cafs$P.value < 0.05,]
+tt <- cafs[,c(2,3,4,8)]
+colnames(tt)[4] <- "MSOP"
+
+shapiro.test(tt[tt$MSOP=="1",2])$p.value<0.05
+
+ms <- ""
+for (i in 1:3) {
+  m = ""
+  for (j in 1:3) {
+    if (shapiro.test(tt[tt$MSOP==j,i])$p.value<0.05){
+      m = 0
+    }
+  }
+  if (m != 0){
+    ms <- c(ms, i)
+  }
+}
+
+ms
+ms
+
+ktest1 <- ""
+ktest1 <- matrix(7777,7,3)
+ktest1 <- as.data.frame(ktest1)
+colnames(ktest1) <- colnames(tt)[1:3]
+rownames(ktest1) <- c("Pvalue", "MS1", "MS2", "MS3"
+                      , "MS4", "MS5", "MS6")
+library("PMCMR")
+library("agricolae")
+for (i in 1:3) {
+  ktest1[1,i] <- kruskal.test(tt[,i]~tt$MSOP,data=tt)$p.value
+  comparison<-with(tt,kruskal(tt[,i],tt$MSOP,group=TRUE, main="tt"))
+  s <- comparison$groups
+  s$order <- rownames(s)
+  ktest1[2,i] <- paste(s$order[1],as.character(s[1,2]), sep = "-")
+  ktest1[3,i] <- paste(s$order[2],as.character(s[2,2]), sep = "-")
+  ktest1[4,i] <- paste(s$order[3],as.character(s[3,2]), sep = "-")
+  ktest1[5,i] <- paste(s$order[4],as.character(s[4,2]), sep = "-")
+  ktest1[6,i] <- paste(s$order[5],as.character(s[5,2]), sep = "-")
+  ktest1[7,i] <- paste(s$order[6],as.character(s[6,2]), sep = "-")
+}
+ktest1 <- as.data.frame(t(ktest1))
+write.table(ktest1, "ktest1-CAFs-MS3-abcmarker-0730.txt", sep = "\t", quote = F)
+
+###############################################################################################################
+###############################################################################################################
+Proportion <- cafs
+phenotye <- phsi[rownames(cafs),]
+
+data <- read.table("CC2-AI-Z-Tumor-T845-1-1220.txt", sep = "\t", quote = "\"'", header = T)
+setwd("F:\\PDAC-Results\\CIBERSORTx\\CAF-Markers")
+cafscRNAgenes <- c(rownames(ecmcafmarker1),rownames(ecmcafmarker2),rownames(ecmcafmarker3))
+cafscRNAgenes <- rownames(ecmcafmarker3)
+cafscRNAgenes <- cafscRNAgenes[!duplicated(cafscRNAgenes)]
+
+cdata <- data
+cdata <- cdata[as.character(cafscRNAgenes),]
+cdata <- na.omit(cdata)
+rownames(phenotye) <- phenotye$title
+rownames(Proportion) <- Proportion$Mixture
+cp <- phenotye[Proportion$Mixture,]
+
+library(survival)
+###Using R package 'caret' to divide the dataset into training and testing cohorts
+###If possible, it's better to divide the dataset into training and testing cohorts.
+library(caret)
+set.seed(777)
+sam<- createDataPartition(Proportion$Fibroblast.1, p = .70,list = FALSE)
+head(sam)
+train <- cdata[,sam]
+test <- cdata[,-sam]
+train_meta <- Proportion[sam,]
+test_meta <- Proportion[-sam,]
+
+###2.Constructing model with LASSO method
+###Test 0224 Set Proportion:1 - F2 as one variance for building formula
+library(glmnet)
+library(ggplot2)
+
+x <- t(train)
+y <- (1-train_meta$Fibroblast.3)/train_meta$Fibroblast.3
+
+set.seed(7777777)
+cv_fit <- cv.glmnet(x, y, family="gaussian", nfold = 10)
+
+plot(cv_fit)
+coef.min = coef(cv_fit,s = "lambda.min")
+coef.1se = coef(cv_fit,s = "lambda.1se")
+coef.min.out <- coef.min[which(coef.min!=0),]
+coef.1se.out <- coef.min[which(coef.1se!=0),]
+
+x1 <- as.data.frame(coef.1se.out)
+
+###1000LASSO
+total <- ""
+total <- as.data.frame(rep(0,(nrow(cdata)+1)))
+rownames(total) <- c("(Intercept)",rownames(cdata))
+total$coef <- rep(0,(nrow(cdata)+1))
+colnames(total)[1] <- "frequence"
+total$gene <- rownames(total)
+
+for (k in 1:1000) {
+  set.seed(k)
+  cv_fit <- cv.glmnet(x, y, family="gaussian", nfold = 10)
+  ###plot(cv_fit)
+  coef.1se = coef(cv_fit,s = "lambda.1se")
+  coef.1se.out <- coef.1se[which(coef.1se!=0),]
+  ###coef.1se.out
+  ###Extract genes and coefficients
+  sig.out <- ""
+  sig.out <- as.data.frame(coef.1se.out) 
+  sig.out$gene <- rownames(sig.out)
+  ###counting
+  for ( i in 1:nrow(sig.out)) {
+    l <- which(total$gene == sig.out[i,"gene"])
+    total[l,"frequence"] <- total[l,"frequence"] + 1
+    total[l,"coef"] <- total[l,"coef"] + sig.out[i,"coef.1se.out"]
+    total[l,k+3] <- sig.out[i,"coef.1se.out"]
+  }
+}
+write.table(total,"CAF-index-cibersortxgenes-0731.txt",sep = "\t",quote = F)
+
+total <- read.table("CAF-index-cibersortxgenes-0731.txt",sep = "\t",quote = "\"'")
+total <- total[order(total$frequence,decreasing = T),]  
+S <- total[total$frequence == 1000,1:3]
+S$scoef <- S$coef/S$frequence
+x1 <- S
+
+S <- x1
+colnames(S) <- "scoef" 
+S$gene <- rownames(S)
+S <- S[2:nrow(S),]
+x1[1,1]
+
+
+#S$scoef<- S[,1]
+
+xx <- ""
+#xx <- t(x)
+xx <- as.data.frame(t(cdata))
+#xx <- as.data.frame(t(test))
+#xx <- as.data.frame(t(train))
+xx <- xx[,S$gene]
+xx$Index <- apply(xx,1,function(x){sum(x*S$scoef)})+x1$scoef[1]
+#xx$Index <- apply(xx,1,function(x){mean(x)})
+
+
+kmp <- phenotye[,c(13,14)]
+xx <- cbind(xx,kmp[rownames(xx),])
+xx <- na.omit(xx)
+xx$time <- xx$Survival.Time
+xx$status <- xx$Status
+xx$risk <- xx$Index
+
+#kmp <- phenotye[,c(15,16)]
+#xx <- cbind(xx,kmp[rownames(xx),])
+#xx <- na.omit(xx)
+#xx$time <- xx$DFS
+#xx$status <- xx$DFSevent
+#xx$risk <- xx$Index
+library(survminer)
+#####Determine the optimal cutpoint of variables
+res.cutx <- surv_cutpoint(xx, time = "time", event = "status",
+                          variables = "risk")
+summary(res.cutx)
+#####Plot cutpoint for DEPDC1
+plot(res.cutx, "risk", palette = "npg")
+#####Categorize variables
+res.catx <- surv_categorize(res.cutx)
+head(res.catx)
+####Fit survival curves and visualize
+library("survival")
+fit <- survfit(Surv(time, status) ~risk, data = res.catx)
+ggsurvplot(fit, data = res.catx, risk.table = TRUE, conf.int = F
+           ,pval = TRUE,legend.labs = c("CAFI=HIGH", "CAFI=LOW"),title = "Combined datasets", 
+           palette = "lancet")
+###8:6
+setwd("F:\\CAF-index")
+
+testdata <-na.omit(testdata)
+testdata <- apply(testdata, 2, function(x){(x-min(x))/(max(x)-min(x))})
+#testdata <- as.data.frame(t(apply(testdata, 1, function(x){(x-min(x))/(max(x)-min(x))})))
+
+#testdata <- (testdata-min(testdata))/(max(testdata)-min(testdata))
+testdata <- as.data.frame(testdata)
+
+#max(testdata[,8])-min(testdata[,8])
+
+xx <- ""
+#xx <- t(x)
+xx <- testdata[match(S$gene, rownames(testdata)),]
+xx <- na.omit(xx)
+SS <- S[S$gene%in%rownames(xx),]
+xx <- t(xx)
+xx <- as.data.frame(xx)
+#class(xx$UBE2C)
+xx$Index <- apply(xx,1,function(x){sum(x*SS$scoef)})+x1$scoef[1]
+
+rownames(testpheno) <-testpheno$title
+rownames(testpheno) <-testpheno$Name
+kmp <- testpheno[,c("Time", "Status")]
+testpheno$X
+
+kmp <- testpheno[,c("Survival.Time", "Status")]
+kmp <- testpheno[,c("Survival.Time", "X")]
+colnames(kmp) <- c("time", "status")
+
+xx <- cbind(xx,kmp[rownames(xx),])
+xx <- na.omit(xx)
+xx$risk <- xx$Index
+
+#write.table(xx,"tcga-177-cafi-0305.txt", sep = "\t", quote = F)
+
+library(survminer)
+#####Determine the optimal cutpoint of variables
+res.cutx <- surv_cutpoint(xx, time = "time", event = "status",
+                          variables = "risk")
+summary(res.cutx)
+#####Plot cutpoint for DEPDC1
+plot(res.cutx, "risk", palette = "npg")
+#####Categorize variables
+res.catx <- surv_categorize(res.cutx)
+head(res.catx)
+####Fit survival curves and visualize
+library("survival")
+fit <- survfit(Surv(time, status) ~risk, data = res.catx)
+ggsurvplot(fit, data = res.catx, risk.table = TRUE, conf.int = F
+           ,pval = TRUE,legend.labs = c("CAFI=HIGH", "CAFI=LOW"),title = "ICGC-PACA-CA", 
+           palette = "lancet")
+###########################################################################################
+###########################################################################################
+###########################################################################################
+###########################################################################################
+###########################################################################################
+###########################################################################################
+
+xxt <- as.data.frame(t(train))
+xxt <- xxt[,S$gene]
+traintest <- xxt
+train_meta$value <- (1-train_meta$Fibroblast.3)/train_meta$Fibroblast.3
+train_meta$index <- apply(traintest,1,function(x){sum(x*S$scoef)})+x1$scoef[1]
+#pred_min1 <- prediction(train_meta$index,train_meta$value)
+cor(train_meta$index,train_meta$value)
+
+
+xxt <- as.data.frame(t(test))
+xxt <- xxt[,S$gene]
+testtest <- xxt
+test_meta$value <- (1-test_meta$Fibroblast.3)/test_meta$Fibroblast.3
+test_meta$index <- apply(testtest,1,function(x){sum(x*S$scoef)})+x1$scoef[1]
+cor(test_meta$index,test_meta$value)
+
+#b1 <- ggplot(test_meta, aes(x = index, y = value))+
+b1 <- ggplot(train_meta, aes(x = index, y = value))+
+  geom_point() +
+  geom_smooth(method = lm, 
+              se = FALSE, fullrange = TRUE)+
+  ggpubr::stat_cor(label.x = 2 , label.y = 0.1)+
+  labs(x = "CAFI", y = "Fibroblast ratio")+
+  theme(
+    axis.text.y.left = element_text(size = 12), 
+    axis.text.x=element_text(size=12),
+    axis.title.x = element_text(size=12,face = "bold"),
+    axis.title.y = element_text(size=12,face = "bold"),
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black"),
+    plot.title = element_text(hjust = 0.5,size=16,face = "bold")
+  )+ 
+  #ggtitle(label = "Test(N=172)")
+  ggtitle(label = "Train(N=409")
+b1
+###5:5
+
+#########################################################################################
+#########################################################################################
+#########################################################################################
+#########################################################################################
+#########################################################################################
+#########################################################################################
+#####Lipo plot
+library(ggplot2)
+library(dplyr)
+library(hrbrthemes)
+
+# Create data
+set.seed(1000)
+data <- data.frame(
+  x=LETTERS[1:26], 
+  y=abs(rnorm(26))
+)
+
+# Reorder the data
+data <- data %>%
+  arrange(y) %>%
+  mutate(x=factor(x,x))
+
+data <- S
+data <- data[order(data$frequence),]
+data$frequence
+data$Gene
+data$scoef
+class(data$scoef)
+data$Gene <- data$gene
+data$Gene <- factor(data$Gene, levels = data$Gene)
+
+scale(data$scoef)
+m <- (max(data$scoef)-data$scoef)/(max(data$scoef)-min(data$scoef))
+m
+# Plot
+p <- ggplot(data, aes(x=Gene, y=frequence)) +
+  geom_segment(
+    aes(x=Gene, xend=Gene, y=900, yend=frequence), 
+    color=ifelse(data$scoef > 0, "#BD6479", "#A1CD88") 
+    #size=(max(data$scoef)-data$scoef)/(max(data$scoef)-min(data$scoef))*4
+  ) +
+  geom_point(
+    color=ifelse(data$scoef > 0, "#BD6479", "#A1CD88"), 
+    #size=ifelse(abs((data$scoef)) > 0.1,abs((data$scoef)), 0.1)*4
+    size=(max(data$scoef)-data$scoef)/(max(data$scoef)-min(data$scoef))*4
+  ) +
+  theme_ipsum()+
+  coord_flip() +
+  theme(
+    legend.position="none",
+    #panel.grid = element_blank()
+    panel.background = element_blank(),
+    axis.text.y.left = element_text(size = 12,face = "bold"), #修改坐标轴文本大小
+    axis.text.x=element_text(size=12),
+    axis.title.x = element_text(size=12,face = "bold"),
+    axis.title.y = element_text(size=12,face = "bold"),
+    plot.title = element_text(hjust = 0.5,size=14,face = "bold")
+  ) +    
+  scale_y_continuous(limits=c(900,1000),breaks = c(900,950,1000)) +
+  xlab("") +
+  ylab("Frequency") +
+  ggtitle("Mean coefficients of 1000 LASSO Iterations")
+
+p
+
+
+#############################################################################################
+#############################################################################################
+#############################################################################################
+#############################################################################################
+#############################################################################################
+#############################################################################################
+######Functional analysis
+c1 <- read.table("David-30CAFIgenes-0731.txt", sep = "\t" , quote = "\"'", header = T, stringsAsFactors = F)
+
+library(clusterProfiler)
+library(stringr)
+gene1 <- c1$To
+
+g1 <- enrichGO(gene1, "org.Hs.eg.db", keyType = "ENTREZID",ont = 'ALL',pvalueCutoff  = 0.05,pAdjustMethod = "BH",  qvalueCutoff  = 0.5, readable=T) 
+
+kegg1 <- enrichKEGG(gene1, organism = 'hsa', keyType = 'kegg', pvalueCutoff = 0.05,pAdjustMethod = 'BH', 
+                    minGSSize = 10,maxGSSize = 500,qvalueCutoff = 0.5,use_internal_data = FALSE)
+
+
+a1 <- g1@result
+k1 <- kegg1@result
+
+library(ggplot2)
+library(Cairo)
+
+#1
+Pathway <- kegg1@result[1:10,]
+
+Pathway$Input.number <- Pathway$Count
+Pathway$Term <- Pathway$Description
+Pathway$P.Value <- Pathway$pvalue
+windowsFonts(Times=windowsFont("Times New Roman"))
+#cols <- c("High" = "#BD6479", "Low" = "#A1CD88")
+##7:6 output
+
+p1 <- ggplot(data=Pathway)+
+  geom_bar(aes(x=reorder(Term,Input.number),y=Input.number, fill=-log10(P.Value)), stat='identity') + 
+  coord_flip() +
+  scale_fill_gradient(expression(-log["10"](P.value)),low="#A1CD88", high = "#BD6479") +
+  scale_x_discrete(labels=function(x) str_wrap(x, width=30))+
+  labs(x = "", y = "Counts")+
+  scale_y_continuous(expand=c(0, 0))+    
+  theme(
+    axis.text.x=element_text(color="black",size=rel(1.5)),
+    axis.text.y=element_text(color="black", size=rel(1.6)),
+    axis.title.x = element_text(color="black", size=rel(1.6)),
+    legend.text=element_text(color="black",size=rel(1.0)),
+    legend.title = element_text(color="black",size=rel(1.1)),
+    plot.title = element_text(hjust = 0.5, color="black",face = "bold", size = 16)
+    # legend.position=c(0,1),legend.justification=c(-1,0)
+    # legend.position="top",
+  )+ggtitle("CAFI geneset KEGG analysis")
+p1
+
+
+library(dplyr)
+library(tidyr)
+
+#1
+GO_BP <- a1[a1$ONTOLOGY=='BP',]
+
+
+GO_BP <- GO_BP %>%
+  separate(GeneRatio, c("Count1","TotalCount"), "[/]")
+GO_BP$TotalCount <- as.numeric(GO_BP$TotalCount)
+GO_BP$fold.Enrichment <- GO_BP$Count/GO_BP$TotalCount
+GO_BP$Go.Biological.Process.Complete <- GO_BP$Description
+GO_BP$Gene <- GO_BP$Count
+GO_BP$Pvalue <- GO_BP$pvalue
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+go1 <- ggplot(GO_BP,aes(x=fold.Enrichment,y=reorder(Go.Biological.Process.Complete,fold.Enrichment))) + 
+  geom_point(aes(size=Gene,color=-1*log10(Pvalue)))+
+  #  guides(color=guide_legend(order = 1),
+  #         size=guide_legend(order = 2)
+  #  )+
+  scale_colour_gradient(low="#A1CD88", high = "#BD6479")+
+  scale_y_discrete(labels=function(y) str_wrap(y, width=30))+
+  labs(
+    color=expression(-log[10](P.value)),
+    size="Count",
+    x="GeneRatio"
+  )+
+  theme_bw()+
+  theme(
+    axis.text.y = element_text(size = rel(1.3)),
+    axis.title.x = element_text(size=rel(1.3)),
+    axis.title.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, color="black",face = "bold", size = 16)
+  )+
+  guides(color=guide_colorbar(order = 1),
+         size=guide_legend(order = 2)
+  )+
+  ggtitle("CAFI geneset GO-BP analysis")
+go1
+
+write.table(k1, "CAFI-kegg.txt", sep = "\t", quote = F)
+write.table(a1, "CAFI-GO.txt", sep = "\t", quote = F)

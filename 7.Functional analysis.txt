@@ -1,0 +1,347 @@
+rm(list = ls())  
+setwd("F:\\PDAC-Results\\FS\\Functionanalysis")
+
+###input genes
+c1 <- read.table("C1ENTREZID.txt", sep = "\t" , quote = "\"'", header = T, stringsAsFactors = F)
+c2 <- read.table("C2ENTREZID.txt", sep = "\t" , quote = "\"'", header = T, stringsAsFactors = F)
+c3 <- read.table("C3ENTREZID.txt", sep = "\t" , quote = "\"'", header = T, stringsAsFactors = F)
+c4 <- read.table("C4ENTREZID.txt", sep = "\t" , quote = "\"'", header = T, stringsAsFactors = F)
+c5 <- read.table("C5ENTREZID.txt", sep = "\t" , quote = "\"'", header = T, stringsAsFactors = F)
+c6 <- read.table("C6ENTREZID.txt", sep = "\t" , quote = "\"'", header = T, stringsAsFactors = F)
+
+library(clusterProfiler)
+library(stringr)
+gene1 <- c1$To
+gene2 <- c2$To
+gene3 <- c3$To
+gene4 <- c4$To
+gene5 <- c5$To
+gene6 <- c6$To
+
+g1 <- enrichGO(gene1, "org.Hs.eg.db", keyType = "ENTREZID",ont = 'ALL',pvalueCutoff  = 0.05,pAdjustMethod = "BH",  qvalueCutoff  = 0.5, readable=T) 
+g2 <- enrichGO(gene2, "org.Hs.eg.db", keyType = "ENTREZID",ont = 'ALL',pvalueCutoff  = 0.05,pAdjustMethod = "BH",  qvalueCutoff  = 0.5, readable=T) 
+g3 <- enrichGO(gene3, "org.Hs.eg.db", keyType = "ENTREZID",ont = 'ALL',pvalueCutoff  = 0.05,pAdjustMethod = "BH",  qvalueCutoff  = 0.5, readable=T) 
+g4 <- enrichGO(gene4, "org.Hs.eg.db", keyType = "ENTREZID",ont = 'ALL',pvalueCutoff  = 0.05,pAdjustMethod = "BH",  qvalueCutoff  = 0.5, readable=T) 
+g5 <- enrichGO(gene5, "org.Hs.eg.db", keyType = "ENTREZID",ont = 'ALL',pvalueCutoff  = 0.05,pAdjustMethod = "BH",  qvalueCutoff  = 0.5, readable=T) 
+g6 <- enrichGO(gene6, "org.Hs.eg.db", keyType = "ENTREZID",ont = 'ALL',pvalueCutoff  = 0.05,pAdjustMethod = "BH",  qvalueCutoff  = 0.5, readable=T) 
+
+kegg1 <- enrichKEGG(gene1, organism = 'hsa', keyType = 'kegg', pvalueCutoff = 0.05,pAdjustMethod = 'BH', 
+                   minGSSize = 10,maxGSSize = 500,qvalueCutoff = 0.5,use_internal_data = FALSE)
+kegg2 <- enrichKEGG(gene2, organism = 'hsa', keyType = 'kegg', pvalueCutoff = 0.05,pAdjustMethod = 'BH', 
+                   minGSSize = 10,maxGSSize = 500,qvalueCutoff = 0.5,use_internal_data = FALSE)
+kegg3 <- enrichKEGG(gene3, organism = 'hsa', keyType = 'kegg', pvalueCutoff = 0.05,pAdjustMethod = 'BH', 
+                   minGSSize = 10,maxGSSize = 500,qvalueCutoff = 0.5,use_internal_data = FALSE)
+kegg4 <- enrichKEGG(gene4, organism = 'hsa', keyType = 'kegg', pvalueCutoff = 0.05,pAdjustMethod = 'BH', 
+                   minGSSize = 10,maxGSSize = 500,qvalueCutoff = 0.5,use_internal_data = FALSE)
+kegg5 <- enrichKEGG(gene5, organism = 'hsa', keyType = 'kegg', pvalueCutoff = 0.05,pAdjustMethod = 'BH', 
+                   minGSSize = 10,maxGSSize = 500,qvalueCutoff = 0.5,use_internal_data = FALSE)
+kegg6 <- enrichKEGG(gene6, organism = 'hsa', keyType = 'kegg', pvalueCutoff = 0.05,pAdjustMethod = 'BH', 
+                   minGSSize = 10,maxGSSize = 500,qvalueCutoff = 0.5,use_internal_data = FALSE)
+
+
+a1 <- g1@result
+a2 <- g2@result
+a3 <- g3@result
+a4 <- g4@result
+a5 <- g5@result
+a6 <- g6@result
+
+k1 <- kegg1@result
+k2 <- kegg2@result
+k3 <- kegg3@result
+k4 <- kegg4@result
+k5 <- kegg5@result
+k6 <- kegg6@result
+
+
+###9:6 output
+barplot(kegg1,showCategory=10,drop=T,color = "pvalue", font.size = 12, title = "C1-KEGG")
+barplot(kegg2,showCategory=10,drop=T,color = "pvalue", font.size = 12, title = "C2-KEGG")
+barplot(kegg3,showCategory=10,drop=T,color = "pvalue", font.size = 12, title = "C3-KEGG")
+barplot(kegg4,showCategory=10,drop=T,color = "pvalue", font.size = 12, title = "C4-KEGG")
+barplot(kegg5,showCategory=10,drop=T,color = "pvalue", font.size = 12, title = "C5-KEGG")
+barplot(kegg6,showCategory=10,drop=T,color = "pvalue", font.size = 12, title = "C6-KEGG")
+
+
+dotplot(g1,showCategory=10,orderBy = "pvalue", font.size = 12, title = "C1-GO-BP")
+dotplot(g2,showCategory=10,orderBy = "pvalue", font.size = 12, title = "C2-GO-BP")
+dotplot(g3,showCategory=10,orderBy = "pvalue", font.size = 12, title = "C3-GO-BP")
+dotplot(g4,showCategory=10,orderBy = "pvalue", font.size = 12, title = "C4-GO-BP")
+dotplot(g5,showCategory=10,orderBy = "pvalue", font.size = 12, title = "C5-GO-BP")
+dotplot(g6,showCategory=10,orderBy = "pvalue", font.size = 12, title = "C6-GO-BP")
+
+
+library(ggplot2)
+library(Cairo)
+
+#1
+Pathway <- kegg1@result[1:10,]
+#2
+Pathway <- kegg2@result[1:10,]
+#3
+Pathway <- kegg3@result[1:10,]
+#4
+Pathway <- kegg4@result[1:10,]
+#5
+Pathway <- kegg5@result[1:10,]
+#6
+Pathway <- kegg6@result[1:10,]
+
+
+Pathway$Input.number <- Pathway$Count
+Pathway$Term <- Pathway$Description
+Pathway$P.Value <- Pathway$pvalue
+windowsFonts(Times=windowsFont("Times New Roman"))
+#cols <- c("High" = "#BD6479", "Low" = "#A1CD88")
+##7:6 output
+
+p1 <- ggplot(data=Pathway)+
+  geom_bar(aes(x=reorder(Term,Input.number),y=Input.number, fill=-log10(P.Value)), stat='identity') + 
+  coord_flip() +
+  scale_fill_gradient(expression(-log["10"](P.value)),low="#A1CD88", high = "#BD6479") +
+  scale_x_discrete(labels=function(x) str_wrap(x, width=30))+
+  labs(x = "", y = "Counts")+
+  scale_y_continuous(expand=c(0, 0))+    
+  theme(
+    axis.text.x=element_text(color="black",size=rel(1.5)),
+    axis.text.y=element_text(color="black", size=rel(1.6)),
+    axis.title.x = element_text(color="black", size=rel(1.6)),
+    legend.text=element_text(color="black",size=rel(1.0)),
+    legend.title = element_text(color="black",size=rel(1.1)),
+    plot.title = element_text(hjust = 0.5, color="black",face = "bold", size = 16)
+    # legend.position=c(0,1),legend.justification=c(-1,0)
+    # legend.position="top",
+  )+ggtitle("C1 KEGG analysis")
+p1
+
+p2 <- ggplot(data=Pathway)+
+  geom_bar(aes(x=reorder(Term,Input.number),y=Input.number, fill=-log10(P.Value)), stat='identity') + 
+  coord_flip() +
+  scale_fill_gradient(expression(-log["10"](P.value)),low="#A1CD88", high = "#BD6479") +
+  scale_x_discrete(labels=function(x) str_wrap(x, width=30))+
+  labs(x = "", y = "Counts")+
+  scale_y_continuous(expand=c(0, 0))+    
+  theme(
+    axis.text.x=element_text(color="black",size=rel(1.5)),
+    axis.text.y=element_text(color="black", size=rel(1.6)),
+    axis.title.x = element_text(color="black", size=rel(1.6)),
+    legend.text=element_text(color="black",size=rel(1.0)),
+    legend.title = element_text(color="black",size=rel(1.1)),
+    plot.title = element_text(hjust = 0.5, color="black",face = "bold", size = 16)
+    # legend.position=c(0,1),legend.justification=c(-1,0)
+    # legend.position="top",
+  )+ggtitle("C2 KEGG analysis")
+p2
+
+p3 <- ggplot(data=Pathway)+
+  geom_bar(aes(x=reorder(Term,Input.number),y=Input.number, fill=-log10(P.Value)), stat='identity') + 
+  coord_flip() +
+  scale_fill_gradient(expression(-log["10"](P.value)),low="#A1CD88", high = "#BD6479") +
+  scale_x_discrete(labels=function(x) str_wrap(x, width=30))+
+  labs(x = "", y = "Counts")+
+  scale_y_continuous(expand=c(0, 0))+    
+  theme(
+    axis.text.x=element_text(color="black",size=rel(1.5)),
+    axis.text.y=element_text(color="black", size=rel(1.6)),
+    axis.title.x = element_text(color="black", size=rel(1.6)),
+    legend.text=element_text(color="black",size=rel(1.0)),
+    legend.title = element_text(color="black",size=rel(1.1)),
+    plot.title = element_text(hjust = 0.5, color="black",face = "bold", size = 16)
+    # legend.position=c(0,1),legend.justification=c(-1,0)
+    # legend.position="top",
+  )+ggtitle("C3 KEGG analysis")
+p3
+
+p4 <- ggplot(data=Pathway)+
+  geom_bar(aes(x=reorder(Term,Input.number),y=Input.number, fill=-log10(P.Value)), stat='identity') + 
+  coord_flip() +
+  scale_fill_gradient(expression(-log["10"](P.value)),low="#A1CD88", high = "#BD6479") +
+  scale_x_discrete(labels=function(x) str_wrap(x, width=30))+
+  labs(x = "", y = "Counts")+
+  scale_y_continuous(expand=c(0, 0))+    
+  theme(
+    axis.text.x=element_text(color="black",size=rel(1.5)),
+    axis.text.y=element_text(color="black", size=rel(1.6)),
+    axis.title.x = element_text(color="black", size=rel(1.6)),
+    legend.text=element_text(color="black",size=rel(1.0)),
+    legend.title = element_text(color="black",size=rel(1.1)),
+    plot.title = element_text(hjust = 0.5, color="black",face = "bold", size = 16)
+    # legend.position=c(0,1),legend.justification=c(-1,0)
+    # legend.position="top",
+  )+ggtitle("C4 KEGG analysis")
+p4
+
+p5 <- ggplot(data=Pathway)+
+  geom_bar(aes(x=reorder(Term,Input.number),y=Input.number, fill=-log10(P.Value)), stat='identity') + 
+  coord_flip() +
+  scale_fill_gradient(expression(-log["10"](P.value)),low="#A1CD88", high = "#BD6479") +
+  scale_x_discrete(labels=function(x) str_wrap(x, width=30))+
+  labs(x = "", y = "Counts")+
+  scale_y_continuous(expand=c(0, 0))+    
+  theme(
+    axis.text.x=element_text(color="black",size=rel(1.5)),
+    axis.text.y=element_text(color="black", size=rel(1.6)),
+    axis.title.x = element_text(color="black", size=rel(1.6)),
+    legend.text=element_text(color="black",size=rel(1.0)),
+    legend.title = element_text(color="black",size=rel(1.1)),
+    plot.title = element_text(hjust = 0.5, color="black",face = "bold", size = 16)
+    # legend.position=c(0,1),legend.justification=c(-1,0)
+    # legend.position="top",
+  )+ggtitle("C5 KEGG analysis")
+p5
+
+p6 <- ggplot(data=Pathway)+
+  geom_bar(aes(x=reorder(Term,Input.number),y=Input.number, fill=-log10(P.Value)), stat='identity') + 
+  coord_flip() +
+  scale_fill_gradient(expression(-log["10"](P.value)),low="#A1CD88", high = "#BD6479") +
+  scale_x_discrete(labels=function(x) str_wrap(x, width=30))+
+  labs(x = "", y = "Counts")+
+  scale_y_continuous(expand=c(0, 0))+    
+  theme(
+    axis.text.x=element_text(color="black",size=rel(1.5)),
+    axis.text.y=element_text(color="black", size=rel(1.6)),
+    axis.title.x = element_text(color="black", size=rel(1.6)),
+    legend.text=element_text(color="black",size=rel(1.0)),
+    legend.title = element_text(color="black",size=rel(1.1)),
+    plot.title = element_text(hjust = 0.5, color="black",face = "bold", size = 16)
+    # legend.position=c(0,1),legend.justification=c(-1,0)
+    # legend.position="top",
+  )+ggtitle("C6 KEGG analysis")
+p6
+
+
+library(dplyr)
+library(tidyr)
+
+#1
+GO_BP <- a1[a1$ONTOLOGY=='BP',][1:10,]
+#2
+GO_BP <- a2[a2$ONTOLOGY=='BP',][1:10,]
+#3
+GO_BP <- a3[a3$ONTOLOGY=='BP',][1:10,]
+#4
+GO_BP <- a4[a4$ONTOLOGY=='BP',][1:10,]
+#5
+GO_BP <- a5[a5$ONTOLOGY=='BP',][1:10,]
+#6
+GO_BP <- a6[a6$ONTOLOGY=='BP',][1:10,]
+
+
+
+GO_BP <- GO_BP %>%
+  separate(GeneRatio, c("Count1","TotalCount"), "[/]")
+GO_BP$TotalCount <- as.numeric(GO_BP$TotalCount)
+GO_BP$fold.Enrichment <- GO_BP$Count/GO_BP$TotalCount
+GO_BP$Go.Biological.Process.Complete <- GO_BP$Description
+GO_BP$Gene <- GO_BP$Count
+GO_BP$Pvalue <- GO_BP$pvalue
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+go1 <- ggplot(GO_BP,aes(x=fold.Enrichment,y=reorder(Go.Biological.Process.Complete,fold.Enrichment))) + 
+  geom_point(aes(size=Gene,color=-1*log10(Pvalue)))+
+#  guides(color=guide_legend(order = 1),
+#         size=guide_legend(order = 2)
+#  )+
+  scale_colour_gradient(low="#A1CD88", high = "#BD6479")+
+  scale_y_discrete(labels=function(y) str_wrap(y, width=30))+
+  labs(
+    color=expression(-log[10](P.value)),
+    size="Count",
+    x="GeneRatio"
+  )+
+  theme_bw()+
+  theme(
+    axis.text.y = element_text(size = rel(1.3)),
+    axis.title.x = element_text(size=rel(1.3)),
+    axis.title.y = element_blank(),
+    plot.title = element_text(hjust = 0.5, color="black",face = "bold", size = 16)
+  )+
+  guides(color=guide_colorbar(order = 1),
+         size=guide_legend(order = 2)
+  )+
+ ggtitle("C6 GO-BP analysis")
+go1
+
+#plot_grid(p1, p2, p3, p4, 
+#          p5, p6, nrow = 6, ncol = 1)
+
+#labels=function(x) str_wrap(x, width=10)
+#scale_x_discrete(labels=function(x) str_wrap(x, width=10))
+#https://blog.csdn.net/weixin_42361933/article/details/112129226
+#library(stringr)
+
+#,color = "pvalue"
+setwd("F:\\PDAC-Results\\FS\\Functionanalysis\\clusterProfiler")
+write.table(k1, "C1-kegg.txt", sep = "\t", quote = F)
+write.table(k2, "C2-kegg.txt", sep = "\t", quote = F)
+write.table(k3, "C3-kegg.txt", sep = "\t", quote = F)
+write.table(k4, "C4-kegg.txt", sep = "\t", quote = F)
+write.table(k5, "C5-kegg.txt", sep = "\t", quote = F)
+write.table(k6, "C6-kegg.txt", sep = "\t", quote = F)
+
+write.table(a1, "C1-GO.txt", sep = "\t", quote = F)
+write.table(a2, "C2-GO.txt", sep = "\t", quote = F)
+write.table(a3, "C3-GO.txt", sep = "\t", quote = F)
+write.table(a4, "C4-GO.txt", sep = "\t", quote = F)
+write.table(a5, "C5-GO.txt", sep = "\t", quote = F)
+write.table(a6, "C6-GO.txt", sep = "\t", quote = F)
+
+
+
+
+BiocManager::install("ReactomePA")
+library("ReactomePA")
+library("org.Hs.eg.db")
+keytypes(org.Hs.eg.db)
+EG2Ensembl=toTable(org.Hs.egENSEMBL)
+
+#convert gene ID
+query=read.table("geneList.txt")
+#ENSMUSG00000043572
+#ENSMUSG00000040035
+#ENSMUSG00000019564
+#ENSMUSG00000042446
+
+query=query$V1
+geneLists=data.frame(ensembl_id=query)
+results=merge(geneLists,EG2Ensembl,by='ensembl_id',all.x=T)
+id=na.omit(results$gene_id)  #提取出非NA的ENTREZID
+gene=id
+
+#Pathway enrichment analysis
+require(ReactomePA)
+x <- enrichPathway(gene=gene,pvalueCutoff=0.05, readable=T,organism = "mouse")
+head(as.data.frame(x))
+
+
+
+
+dotplot(g1,showCategory=20,orderBy = "pvalue")
+barplot(kegg1,showCategory=20,drop=T)
+
+#eg = bitr(gene, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+#gene <- eg$ENTREZID
+ALL <- enrichGO(gene, "org.Hs.eg.db", keyType = "ENTREZID",ont = 'ALL',pvalueCutoff  = 0.05,pAdjustMethod = "BH",  qvalueCutoff  = 0.1, readable=T)  #一步到位
+#BP<-enrichGO(gene, "org.Hs.eg.db", keyType = "ENTREZID",ont = "BP",pvalueCutoff  = 0.05,pAdjustMethod = "BH",qvalueCutoff  = 0.1, readable=T) #3种分开进行富集
+#MF <- enrichGO(gene, "org.Hs.eg.db", keyType = "ENTREZID",ont = "MF",pvalueCutoff  = 0.05,pAdjustMethod = "BH",qvalueCutoff  = 0.1, readable=T)
+#CC <- enrichGO(gene, "org.Hs.eg.db", keyType = "ENTREZID",ont = "CC",pvalueCutoff  = 0.05,pAdjustMethod = "BH",qvalueCutoff  = 0.1, readable=T)
+
+
+a <- ALL@result
+bp <- BP@result
+
+dev.off()
+
+barplot(ALL,showCategory=20,drop=T)
+dotplot(ALL,showCategory=20,orderBy = "pvalue")
+
+barplot(BP,showCategory=20,drop=T)
+dotplot(BP,showCategory=20,orderBy = "pvalue")
+
+ALL[ALL$ONTOLOGY=='CC',]
+
+kegg <- enrichKEGG(gene, organism = 'hsa', keyType = 'kegg', pvalueCutoff = 0.05,pAdjustMethod = 'BH', 
+                   minGSSize = 10,maxGSSize = 500,qvalueCutoff = 0.2,use_internal_data = FALSE)
+head(kegg)
+dim(kegg)
+dotplot(kegg,showCategory=7,orderBy = "pvalue", font.size = 16, title = "C3-KEGG")

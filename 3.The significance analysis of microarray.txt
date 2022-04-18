@@ -1,0 +1,375 @@
+rm(list = ls())
+getwd()
+setwd("F:\\T1220\\prognosis")
+
+ph <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'", header = T) 
+ph$num <- "1"
+
+
+library(dplyr)
+m <- c(0,33,60,105,133,149,267,280,589,625,650,845)
+mm <- data.frame(888,888)
+colnames(mm) <- c("x1$cluster5","count")
+for (i in 2:12) {
+  x1 <- ""
+  x1 <- ph[(m[i-1]+1):m[i],c(4,17)]
+  data_group <- group_by(x1, x1$cluster5)
+  data_GroupByID<- summarise(data_group,count = n())
+  data_GroupByID<- data_GroupByID[order(data_GroupByID$`x1$cluster5`),]
+  data_GroupByID<- as.data.frame(data_GroupByID)
+  mm <- rbind(mm,data_GroupByID)
+}
+write.table(mm, "sum-cluster5-845.txt", sep = "\t", quote = F, row.names = F) 
+
+
+m1 <- c(0,650,845)
+mm1 <- data.frame(888,888)
+colnames(mm1) <- c("x1$cluster5","count")
+for (i in 2:3) {
+  x1 <- ""
+  x1 <- ph[(m1[i-1]+1):m1[i],c(6,17)]
+  data_group <- group_by(x1, x1$cluster5)
+  data_GroupByID<- summarise(data_group,count = n())
+  data_GroupByID<- data_GroupByID[order(data_GroupByID$`x1$cluster5`),]
+  data_GroupByID<- as.data.frame(data_GroupByID)
+  mm1 <- rbind(mm1,data_GroupByID)
+}
+write.table(mm1, "sum-cluster5-plaform.txt", sep = "\t", quote = F, row.names = F) 
+
+
+pph <- ph[,c(7,19)]
+pph <- pph[order(pph$Fresh.Frozen.or.FFPE),]
+rownames(pph) <- 1:845
+pph[536,1]
+m11 <- c(0,536,845)
+mm11 <- data.frame(888,888)
+colnames(mm11) <- c("x1$cluster6","count")
+for (i in 2:3) {
+  x1 <- ""
+  x1 <- pph[(m11[i-1]+1):m11[i],]
+  data_group <- group_by(x1, x1$cluster6)
+  data_GroupByID<- summarise(data_group,count = n())
+  data_GroupByID<- data_GroupByID[order(data_GroupByID$`x1$cluster6`),]
+  data_GroupByID<- as.data.frame(data_GroupByID)
+  mm11 <- rbind(mm11,data_GroupByID)
+}
+write.table(mm11, "sum-cluster6-samples.txt", sep = "\t", quote = F, row.names = F) 
+
+
+###heatmap of cluster frequence
+summ <- read.table("sum6.txt", sep = "\t", quote = "\"'", header = T) 
+summ$sum <- apply(summ[,2:7],1,sum)
+rownames(summ) <- summ$Corhort
+sb <- summ[,2:7]/summ$sum
+
+
+
+
+library(ggplot2)
+library(ggtree)
+library(aplot)
+library(tidyr)
+p <- as.data.frame(sb)
+p$mtxars <- rownames(p)
+p$Type <- 1
+p$Type[1:11] <- "Corhort"
+p$Type[12:13] <- "Platform"
+p$Type[14:15] <- "Sample"
+p$mtxars
+p$Type
+p1 <- gather(p, key="Cluster",1:6, value='Frequence', -mtxars)
+p1$`Frequence`
+p1$mtxars
+p1$mtxars <- factor(p1$mtxars,order=TRUE, levels = c("FFPE","Fresh Frozen","Illumina","Affymetrix","E-MTAB-1791",
+                                                     "GSE32676","GSE16515","E-MTAB-6134","GSE71989", "GSE62165",
+                                                     "GSE60646","GSE56560","GSE28735","GSE17891","GSE15471"))
+
+colour01 <- c("#00008B", "#0000FF", "#ADD8E6", "#00FFFF", "#90EE90","#FFFF00","#FFA500","#FF0000","#8B0000")
+p1$Frequence <- p1$Frequence*100
+#dev.off()
+#par(mar=c(5, 4, 4, 8), xpd=TRUE)
+pp <- ggplot(p1,aes(Cluster,mtxars,fill=`Frequence`))+
+  guides(fill = guide_colorbar(title = "Frequence(%)", title.position = "left", 
+                               title.theme = element_text(size = 18, face = "bold",color="black"),
+                               title.hjust = 0.5,
+                               title.vjust= 0.5,
+                               label.theme = element_text(size = 12,face = "bold",color="black"),
+                               barwidth = unit(5,"cm"),
+                               barheight = unit(1.2,"cm"),
+                               ticks = FALSE,
+                               draw.ulim = F,
+                               draw.llim = F))+
+  geom_tile()+
+  theme(
+    panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA))+
+# scale_colour_manual(breaks = c("0","0.056","0.112","0.168","0.224","0.28","0.336","0.392","4.48","0.5"), values = colour01)+
+  scale_fill_gradientn(colours = colour01,limits= c (0,50))+
+  scale_x_discrete(position="top") + 
+  scale_y_discrete(position="left") + 
+  theme(axis.ticks.y = element_blank(),axis.text.y = element_text(size = 16, color="black", face = "bold"))+
+  xlab(NULL) + ylab(NULL) +theme(axis.ticks.x = element_blank(), axis.text.x = element_text(size = 18, color="black", face = "bold"))+theme(axis.line = element_blank())+
+  theme(plot.title = element_text(hjust = 0.5, size = 36, face = "bold", color="black"),plot.margin = unit(c(1,3,1,1),"lines"))+
+  facet_grid(Type ~ ., scales = "free",space = "free",shrink = F,as.table = T) +
+  theme(strip.background = element_rect(color = "white", fill = "white", size = 18),panel.grid = element_blank(),strip.text = element_text(face = "bold", size = 20))+
+#  theme(strip.background = element_blank())+
+  theme(legend.position="bottom")
+pp
+#write.table(p1,"ggplot_test.txt", sep = "\t", quote = F, row.names = F)
+
+###prognosis analysis of total samples
+#Age
+ph1 <- ph[,c(1,13,14,12)]
+ph1 <- na.omit(ph1)
+ph1$Age[ph1$Age<=65] <- 1
+ph1$Age[ph1$Age>65] <- 2
+ph1$Age <- as.factor(ph1$Age)
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(Survival.Time, Status) ~ Age, data = ph1)
+p <- ggsurvplot(fit, data = ph1, risk.table = F, conf.int = F,pval = TRUE,pval.method = TRUE,
+                legend.labs = c("≤ 60","> 60"),
+                palette = "lancet")
+p
+
+#Gender
+ph1 <- ph[,c(1,13,14,9)]
+ph1$Gender[ph1$Gender==3] <- NA
+ph1 <- na.omit(ph1)
+ph1$Gender <- as.factor(ph1$Gender)
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(Survival.Time, Status) ~ Gender, data = ph1)
+p <- ggsurvplot(fit, data = ph1, risk.table = F, conf.int = F,pval = TRUE,pval.method = TRUE,
+                legend.labs = c("Female","Male"),
+                palette = "lancet")
+p
+
+#stage
+ph1 <- ph[,c(1,13,14,10)]
+ph1$Stage[ph1$Stage==5] <- NA
+ph1$Stage[ph1$Stage==1] <- 1
+ph1$Stage[ph1$Stage==2] <- 1
+ph1$Stage[ph1$Stage==3] <- 2
+ph1$Stage[ph1$Stage==4] <- 2
+ph1 <- na.omit(ph1)
+ph1$Stage <- as.factor(ph1$Stage)
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(Survival.Time, Status) ~ Stage, data = ph1)
+p <- ggsurvplot(fit, data = ph1, risk.table = F, conf.int = F,pval = TRUE,pval.method = TRUE,
+                legend.labs = c("Stage 1","Stage 2", "Stage 3", "Stage 4"),
+                palette = "lancet")
+p
+
+
+#Grade
+ph1 <- ph[,c(1,13,14,11)]
+ph1$Grade[ph1$Grade==4] <- NA
+ph1$Grade[ph1$Grade==1] <- 1
+ph1$Grade[ph1$Grade==2] <- 2
+ph1$Grade[ph1$Grade==3] <- 2
+ph1 <- na.omit(ph1)
+ph1$Stage <- as.factor(ph1$Grade)
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(Survival.Time, Status) ~ Grade, data = ph1)
+p <- ggsurvplot(fit, data = ph1, risk.table = F, conf.int = F,pval = TRUE,pval.method = TRUE,
+                legend.labs = c("Low","Middle","High"),
+                palette = "lancet")
+p
+
+
+
+###prognosis analysis of DFS
+#Age
+#none
+
+#Gender
+ph1 <- ph[,c(1,15,16,9)]
+ph1$Gender[ph1$Gender==3] <- NA
+ph1 <- na.omit(ph1)
+ph1$Gender <- as.factor(ph1$Gender)
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(DFS, DFSevent) ~ Gender, data = ph1)
+p <- ggsurvplot(fit, data = ph1, risk.table = F, conf.int = F,pval = TRUE,pval.method = TRUE,
+                legend.labs = c("Female","Male"),
+                palette = "lancet")
+p
+
+#stage
+ph1 <- ph[,c(1,15,16,10)]
+ph1$Stage[ph1$Stage==5] <- NA
+ph1$Stage[ph1$Stage==1] <- 1
+ph1$Stage[ph1$Stage==2] <- 1
+ph1$Stage[ph1$Stage==3] <- 2
+ph1$Stage[ph1$Stage==4] <- 2
+ph1 <- na.omit(ph1)
+ph1$Stage <- as.factor(ph1$Stage)
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(DFS, DFSevent) ~ Stage, data = ph1)
+p <- ggsurvplot(fit, data = ph1, risk.table = F, conf.int = F,pval = TRUE,pval.method = TRUE,
+                legend.labs = c("Stage 1","Stage 2", "Stage 3"),
+                palette = "lancet")
+p
+
+#Grade
+ph1 <- ph[,c(1,15,16,11)]
+ph1$Grade[ph1$Grade==4] <- NA
+ph1$Grade[ph1$Grade==1] <- 1
+ph1$Grade[ph1$Grade==2] <- 2
+ph1$Grade[ph1$Grade==3] <- 2
+ph1 <- na.omit(ph1)
+ph1$Stage <- as.factor(ph1$Grade)
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(DFS, DFSevent) ~ Grade, data = ph1)
+p <- ggsurvplot(fit, data = ph1, risk.table = F, conf.int = F,pval = TRUE,pval.method = TRUE,
+                legend.labs = c("Low","Middle","High"),
+                palette = "lancet")
+p
+
+
+####--------------------------------------------------------------
+phsi <- ph[ph$sil_width.1 > 0.01,]
+lab568 <- phsi$ID
+data <- read.table("CC2-AI-Z-Tumor-T845-1-1220.txt", sep = "\t", quote = "\"'",header = T)
+data568 <- data[,lab568]
+cc568 <- phsi$cluster6
+
+
+degeneclass <- ""
+degeneclass <- matrix(7777777,ncol=612,nrow=6)
+colnames(degeneclass) <- colnames(data568)
+rownames(degeneclass) <- c("Cluster1","Cluster2","Cluster3","Cluster4","Cluster5","Cluster6")
+
+v <- cc568
+v[!v==2] <- 0
+v[v==2] <- 1
+v[v==0] <- 2
+v
+cc568[!cc568==2]
+
+for (i in 1:6) {
+  v <- ""
+  v <- cc568
+  v[!v==i] <- 0
+  v[v==i] <- 2
+  v[v==0] <- 1
+  degeneclass[i,] <- v
+}
+
+geneid=as.character(1:nrow(data568))
+genenames=rownames(data568)
+
+library("samr")
+x <- as.matrix(data568)
+y=degeneclass[3,]
+ddata568=list(x=x,y=y, geneid=as.character(1:nrow(x)),
+          genenames=rownames(x), logged2=T)
+samr.obj<-samr(ddata568,  resp.type="Two class unpaired", nperms=100)
+
+delta=0.5
+samr.plot(samr.obj,delta)
+FC = 1.5
+delta.table <- samr.compute.delta.table(samr.obj)
+#,min.foldchange = FC
+siggenes.table<-samr.compute.siggenes.table(samr.obj,delta, ddata568, delta.table)
+up <- as.data.frame(siggenes.table$genes.up)
+up$`Fold Change` <- as.numeric(as.character(up$`Fold Change`))
+#up$`q-value(%)` <- as.numeric(as.character(up$`q-value(%)`))
+uppergenes <- up[abs(up$`Fold Change`)>= FC &up$`q-value(%)`== 0,]
+down <- as.data.frame(siggenes.table$genes.lo)
+down$`Fold Change` <- as.numeric(as.character(down$`Fold Change`))
+#down$`q-value(%)` <- as.numeric(as.character(down$`q-value(%)`))
+downgenes <- down[abs(down$`Fold Change`)<(1/FC)&down$`q-value(%)`==0,]
+t <- list(uppergenes,downgenes)
+
+down <- as.data.frame(siggenes.table$genes.lo)
+class(down$`Fold Change`)
+down$`Fold Change` <- as.numeric(as.character(down$`Fold Change`))
+
+###x <- gene matrix,y <- groups,perms=100?,default method "Two class unpaired",dta<-delta,FC=fold change
+DEGSAM <- function(x,y){
+  library("samr")
+  x <- as.matrix(x)
+  y <- y
+  ddata568=list(x=x,y=y, geneid=as.character(1:nrow(x)),
+                genenames=rownames(x), logged2=T)
+  samr.obj<-samr(ddata568,  resp.type="Two class unpaired", nperms=1000)
+  delta=0.5
+  FC = 1.5
+  delta.table <- samr.compute.delta.table(samr.obj)
+  #,min.foldchange = FC
+  siggenes.table<-samr.compute.siggenes.table(samr.obj,delta, ddata568, delta.table)
+  up <- as.data.frame(siggenes.table$genes.up)
+  up$`Fold Change` <- as.numeric(as.character(up$`Fold Change`))
+  #up$`q-value(%)` <- as.numeric(as.character(up$`q-value(%)`))
+  uppergenes <- up[abs(up$`Fold Change`)>= FC &up$`q-value(%)`== 0,]
+  down <- as.data.frame(siggenes.table$genes.lo)
+  down$`Fold Change` <- as.numeric(as.character(down$`Fold Change`))
+  #down$`q-value(%)` <- as.numeric(as.character(down$`q-value(%)`))
+  downgenes <- down[abs(down$`Fold Change`)<(1/FC)&down$`q-value(%)`==0,]
+  t <- list(uppergenes,downgenes)
+}
+
+degclass1 <-  DEGSAM(x = data568,y = degeneclass[1,])
+degclass2 <-  DEGSAM(x = data568,y = degeneclass[2,])
+degclass3 <-  DEGSAM(x = data568,y = degeneclass[3,])
+degclass4 <-  DEGSAM(x = data568,y = degeneclass[4,])
+degclass5 <-  DEGSAM(x = data568,y = degeneclass[5,])
+degclass6 <-  DEGSAM(x = data568,y = degeneclass[6,])
+
+
+
+up1   <- as.data.frame(degclass1[[1]])
+down1 <- as.data.frame(degclass1[[2]])
+up2   <- as.data.frame(degclass2[[1]])
+down2 <- as.data.frame(degclass2[[2]])
+up3   <- as.data.frame(degclass3[[1]])
+down3 <- as.data.frame(degclass3[[2]])
+up4   <- as.data.frame(degclass4[[1]])
+down4 <- as.data.frame(degclass4[[2]])
+up5   <- as.data.frame(degclass5[[1]])
+down5 <- as.data.frame(degclass5[[2]])
+up6   <- as.data.frame(degclass6[[1]])
+down6 <- as.data.frame(degclass6[[2]])
+
+write.table(up1,"C1-upgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(down1,"C1-downgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(up2,"C2-upgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(down2,"C2-downgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(up3,"C3-upgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(down3,"C3-downgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(up4,"C4-upgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(down4,"C4-downgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(up5,"C5-upgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(down5,"C5-downgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(up6,"C6-upgenes.txt", sep = "\t", quote = F, row.names = F)
+write.table(down6,"C6-downgenes.txt", sep = "\t", quote = F, row.names = F)
+
+
+
+save.image('classsum.RData')
+
+
+
+

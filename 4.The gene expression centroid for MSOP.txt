@@ -1,0 +1,459 @@
+####The gene expression centroid for MSOP
+rm(list=ls())
+setwd("F:\\T1220\\phenotype")
+
+u1 <- read.table("C1-upgenes.txt",sep = "\t", quote = "\"'",header = T)
+d1 <- read.table("C1-downgenes.txt",sep = "\t", quote = "\"'",header = T)
+u2 <- read.table("C2-upgenes.txt",sep = "\t", quote = "\"'",header = T)
+d2 <- read.table("C2-downgenes.txt",sep = "\t", quote = "\"'",header = T)
+u3 <- read.table("C3-upgenes.txt",sep = "\t", quote = "\"'",header = T)
+d3 <- read.table("C3-downgenes.txt",sep = "\t", quote = "\"'",header = T)
+u4 <- read.table("C4-upgenes.txt",sep = "\t", quote = "\"'",header = T)
+d4 <- read.table("C4-downgenes.txt",sep = "\t", quote = "\"'",header = T)
+u5 <- read.table("C5-upgenes.txt",sep = "\t", quote = "\"'",header = T)
+d5 <- read.table("C5-downgenes.txt",sep = "\t", quote = "\"'",header = T)
+u6 <- read.table("C6-upgenes.txt",sep = "\t", quote = "\"'",header = T)
+d6 <- read.table("C6-downgenes.txt",sep = "\t", quote = "\"'",header = T)
+
+
+###top up 100genes
+up100 <- function(x){
+  x <- x[order(x$Fold.Change,decreasing = T),]
+  rownames(x) <- 1:nrow(x)
+  t <- x[1:100,]
+  return(t)
+}
+
+uu1 <- up100(u1)
+uu2 <- up100(u2)
+uu3 <- up100(u3)
+uu4 <- up100(u4)
+uu5 <- up100(u5)
+uu6 <- up100(u6)
+
+###top 100genes in each cluster and combined
+ttop100 <- rbind(uu1,uu2)
+ttop100 <- rbind(ttop100,uu3)
+ttop100 <- rbind(ttop100,uu4)
+ttop100 <- rbind(ttop100,uu5)
+ttop100 <- rbind(ttop100,uu6)
+
+###selecting gene matrix and reorder samples according the clusters in samples which SI > 0.01
+cc2 <- read.table("CC2-AI-Z-Tumor-T845-1-1220.txt", sep = "\t", quote = "\"'", header = T)
+p845 <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'", header = T)
+phsi <- p845[p845$sil_width.1 > 0.01,]
+lab612 <- phsi$ID
+data612 <- cc2[,lab612]
+
+cogenes <- as.character(ttop100$Gene.ID)
+t <- cogenes[!duplicated(cogenes)]
+tumor <- data612[t,]
+
+# reorder according samples
+porder <- phsi[order(phsi$cluster6),]
+rownames(porder) <- 1:nrow(porder)
+rs <- as.character(porder$title)
+group <- porder[,c(2,19)]
+datasum <- tumor[,rs]
+
+###predealing before heatmap in order to maximize the difference between samples
+#datasum <- scale(tumor)
+
+datasum$mean <- apply(datasum[,1:612], 1, mean, na.rm=T) 
+datasum$SD <- apply(datasum[,1:612], 1, sd, na.rm=T) 
+for (i in 1:612) {
+  for (j in 1:385) {
+    datasum[j,i] <- (datasum[j,i]-datasum$mean[j])/(datasum$SD[j])
+    if(datasum[j,i] > 3){datasum[j,i] <- 3}
+    if(datasum[j,i] < -3){datasum[j,i] <- -3}
+  }
+}
+
+###annotations of class
+annotation_col = data.frame( Cluster = group$cluster6)
+annotation_col[annotation_col$Cluster==1,] <- "Cluster1"
+annotation_col[annotation_col$Cluster==2,] <- "Cluster2"
+annotation_col[annotation_col$Cluster==3,] <- "Cluster3"
+annotation_col[annotation_col$Cluster==4,] <- "Cluster4"
+annotation_col[annotation_col$Cluster==5,] <- "Cluster5"
+annotation_col[annotation_col$Cluster==6,] <- "Cluster6"
+annotation_col$Cluster <- as.factor(annotation_col$Cluster)
+rownames(annotation_col) <- colnames(datasum)[1:612]
+
+library(pheatmap)
+df <- datasum[,1:612]
+bk <- c(seq(-3,-0.1,by=0.01),seq(0,3,by=0.01))
+ann_colors = list(Cluster = c(Cluster1 = "#00008B",  Cluster2 = "#ADD8E6",
+                              Cluster3 = "#00FFFF",Cluster4 = "#FFFF00",
+                              Cluster5 = "#FFA500",Cluster6 = "#8B0000" ))
+p1<-pheatmap(df,scale = "row", method="spearman", cluster_rows=F, cluster_cols=F,
+             color = colorRampPalette(c("navy", "white", "firebrick3"))(100),
+             show_colnames=F,show_rownames = F,annotation_col = annotation_col, annotation_colors = ann_colors)
+p1
+dev.off()
+
+save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+save_pheatmap_pdf(p1, "top100.pdf")
+
+save.image('top100.RData')
+
+
+###classifier of clinical samples
+rm(list=ls())
+setwd("F:\\T1220\\phenotype")
+data <- read.table("CC2-AI-Z-coreTumor-T612-1-0123.txt",sep = "\t" , quote = "\"'", header = T)
+pheno <- read.table("phenotype-845 - SI.txt", sep = "\t", quote = "\"'",header = T, stringsAsFactors = FALSE)
+rownames(pheno) <- pheno$title
+pseno <- pheno[colnames(data),]
+
+c1 <- read.table("c1top.txt",sep = "\t", quote = "\"'",header = T,stringsAsFactors = FALSE)
+c2 <- read.table("c2top.txt",sep = "\t", quote = "\"'",header = T,stringsAsFactors = FALSE)
+c3 <- read.table("c3top.txt",sep = "\t", quote = "\"'",header = T,stringsAsFactors = FALSE)
+c4 <- read.table("c4top.txt",sep = "\t", quote = "\"'",header = T,stringsAsFactors = FALSE)
+c5 <- read.table("c5top.txt",sep = "\t", quote = "\"'",header = T,stringsAsFactors = FALSE)
+c6 <- read.table("c6top.txt",sep = "\t", quote = "\"'",header = T,stringsAsFactors = FALSE)
+
+cc <- ""
+cc <- rbind(c1,c2)
+cc <- rbind(cc,c3)
+cc <- rbind(cc,c4)
+cc <- rbind(cc,c5)
+cc <- rbind(cc,c6)
+genesymbol <- as.character(cc$Gene.ID)
+genesymbol <- genesymbol[!duplicated(genesymbol)]
+
+sdata <- data
+sdata <- sdata[genesymbol,]
+
+sdata <- data
+sdata <- sdata[genesymbol,]
+
+###Mean of core genes in 6 clusters
+sdata$C1 <- apply(as.matrix(sdata[,1:41]),1,mean)
+sdata$C2 <- apply(as.matrix(sdata[,42:114]),1,mean)
+sdata$C3 <- apply(as.matrix(sdata[,115:257]),1,mean)
+sdata$C4 <- apply(as.matrix(sdata[,258:327]),1,mean)
+sdata$C5 <- apply(as.matrix(sdata[,328:513]),1,mean)
+sdata$C6 <- apply(as.matrix(sdata[,514:612]),1,mean)
+
+classifier385 <- as.data.frame(sdata[,(ncol(sdata)-5):(ncol(sdata))])
+write.table(classifier385, "classifyier-MSOP-385genes1217.txt", sep = "\t", quote = F)
+
+setwd("F:\\T1220\\phenotype\\Classifier")
+tcgadata <- read.table("IS-TCGA-TPM-181-T177N4-1.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = FALSE)  
+ptcgadata <- read.table("IP-TCGA-TPM-181-T177N4-1.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = FALSE)
+data3 <- tcgadata
+
+###Application in TCGA Cohort
+data3 <- as.data.frame(data3)
+data3 <- data3[rownames(classifier385),]
+data3 <- na.omit(data3)
+data3 <- as.data.frame(data3)
+
+cluster1 <- classifier385[rownames(data3),]
+
+gene_name1<-c()
+gene_name2<-c()
+cor_r<-c()
+pvalue<-c()
+
+for (i in 1:ncol(data3)){
+  for (r in 1:ncol(cluster1)){
+    g1=colnames(data3)[i]
+    g2=colnames(cluster1)[r]
+    c_r=cor(as.numeric(data3[,i]),as.numeric(cluster1[,r]),method="spearman")
+    p=cor.test(as.numeric(data3[,i]),as.numeric(cluster1[,r]),method ="spearman")[[3]]
+    gene_name1=c(gene_name1,g1)
+    gene_name2=c(gene_name2,g2)
+    cor_r=c(cor_r,c_r)
+    pvalue=c(pvalue,p)
+  }
+}
+
+data_corco<-data.frame(gene_name1,gene_name2,cor_r,pvalue)
+m <- ""
+n <- ""
+test <- data_corco
+t <- test[order(test[,1], test[,3],decreasing = T),]
+tt <- t[seq(1,1086,by=6),]
+rownames(tt) <- tt$gene_name1
+o <- colnames(data3)
+tt <- tt[o,]
+write.table(tt, "Cluster_correlation_T181-TCGA-T177N4-6clusters.txt", sep = "\t", quote = F)
+
+
+phtcgasi <- ""
+phtcgasi <- cbind(ptcgadata, tt)
+
+#####OS in meta cohort
+ph1 <- pseno
+ph1 <- ph1[,c(2,13,14,19)]
+ph1$Time <- ph1$Survival.Time
+ph1$Status <- ph1$Status
+ph1$gene_name2 <- ph1$cluster6
+ph1 <- na.omit(ph1)
+class(ph1$gene_name2)
+ph1$gene_name2 <- as.character(ph1$gene_name2)
+ph1$gene_name2
+###DFS in meta cohort
+ph1 <- pseno
+ph1 <- ph1[,c(2,15,16,19)]
+ph1$Time <- ph1$DFS
+ph1$Status <- ph1$DFSevent
+ph1$gene_name2 <- ph1$cluster6
+ph1 <- na.omit(ph1)
+class(ph1$gene_name2)
+ph1$gene_name2 <- as.character(ph1$gene_name2)
+ph1$gene_name2
+
+###KM analysis in TCGA
+###Output 12:7
+ph1 <- phtcgasi[,c(2,11,12,18)]
+###DFS
+ph1 <- phtcgasi[,c(2,11,12,15,18)]
+ph1$Time <- ifelse(is.na(ph1$Relapse.interval),ph1$Time,ph1$Relapse.interval)
+ph1$Status <- ifelse(is.na(ph1$Relapse.interval),ph1$Status,1)
+ph1 <- ph1[,c(1,2,3,5)]
+
+ph1 <- na.omit(ph1)
+class(ph1$gene_name2)
+ph1$gene_name2 <- as.character(ph1$gene_name2)
+ph1$gene_name2
+#write.table(ph1, "TCGA-DS-1217.txt", sep = "\t", quote = F)
+#ph1[ph1$gene_name2=="C5",][,4] <- "1"
+#ph1[!ph1$gene_name2=="1",][,4] <- "2"
+
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(Time, Status) ~ gene_name2, data = ph1)
+p <- ggsurvplot(fit, data = ph1, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                legend.labs = c("MS1","MS2","MS3","MS4","MS5","MS6"),#220129
+                palette = "lancet")
+p
+
+###comparisons between different groups
+##_______________________________________________________________________________________________________________
+ph2 <- ph1
+ph2[ph2$gene_name2%in%c("2","5"),][,"gene_name2"] <- "A"
+ph2[!ph2$gene_name2=="A",][,"gene_name2"] <- "B"
+
+ph2 <- ph1
+ph2[ph2$gene_name2%in%c("5"),][,"gene_name2"] <- "A"
+ph2[ph2$gene_name2%in%c("2"),][,"gene_name2"] <- "B"
+ph2[!ph2$gene_name2%in%c("A","B"),][,"gene_name2"] <- NA
+ph2 <- na.omit(ph2)
+
+
+fit <- survfit(Surv(Time, Status) ~ gene_name2, data = ph2)
+p1 <- ggsurvplot(fit, data = ph2, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                 legend.labs = c("MS5","MS2"),
+                 palette = c("#000000", "#8C8C8C"))
+###
+#"#000000", "#8C8C8C"
+p1
+##_______________________________________________________________________________________________________________
+
+tms1 <- median(ph1[ph1$gene_name2=="C1",]$Time)
+tms2 <- median(ph1[ph1$gene_name2=="C2",]$Time)
+tms3 <- median(ph1[ph1$gene_name2=="C3",]$Time)
+tms4 <- median(ph1[ph1$gene_name2=="C4",]$Time)
+tms5 <- median(ph1[ph1$gene_name2=="C5",]$Time)
+tms6 <- median(ph1[ph1$gene_name2=="C6",]$Time)
+
+ph2 <- ph1
+ph2[ph2$gene_name2=="C2",][,4] <- "1"
+ph2[!ph2$gene_name2=="1",][,4] <- "2"
+
+fit <- survfit(Surv(Time, Status) ~ gene_name2, data = ph2)
+p1 <- ggsurvplot(fit, data = ph2, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                #legend.labs = c("Cluster 1","Cluster 2","Cluster 3","Cluster 4","Cluster 5","Cluster 6"),
+                palette = "lancet")
+p1
+
+
+phtcgasi <- cbind(ptcgadata, tt)
+ph3 <- phtcgasi[,c(2,11,12,18,19)]
+ph3 <- ph3[ph3$cor_r>0.5,]
+#ph3 <- ph3[ph3$Time>1,]
+ph3 <- na.omit(ph3)
+fit3 <- survfit(Surv(Time, Status) ~ gene_name2, data = ph3)
+p3 <- ggsurvplot(fit3, data = ph3, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                #legend.labs = c("Cluster 1","Cluster 2","Cluster 3","Cluster 4","Cluster 5","Cluster 6"),
+                palette = "lancet")
+p3
+
+class(ph3$gene_name2)
+ph3$gene_name2
+ph3[ph3$gene_name2=="C2",]
+ph3[ph3$gene_name2=="C5",][,5] <- "1"
+ph3[!ph3$gene_name2=="C5",][,5] <- "2"
+ph3$cor_r
+fit <- survfit(Surv(Time, Status) ~ cor_r, data = ph3)
+p3 <- ggsurvplot(fit, data = ph3, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                 #legend.labs = c("Cluster 1","Cluster 2","Cluster 3","Cluster 4","Cluster 5","Cluster 6"),
+                 palette = "lancet")
+p3
+
+phtcgasi <- cbind(ptcgadata, tt)
+ph3 <- phtcgasi[,c(2,11,12,18,19)]
+ph3 <- ph3[ph3$cor_r>0.5,]
+#ph3 <- ph3[ph3$Time>1,]
+ph3 <- na.omit(ph3)
+fit3 <- survfit(Surv(Time, Status) ~ gene_name2, data = ph3)
+p3 <- ggsurvplot(fit3, data = ph3, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                 #legend.labs = c("Cluster 1","Cluster 2","Cluster 3","Cluster 4","Cluster 5","Cluster 6"),
+                 palette = "lancet")
+p3
+
+class(ph3$gene_name2)
+ph3$gene_name2
+ph3[ph3$gene_name2%in%c("C2","C5"),]
+ph3[ph3$gene_name2%in%c("C2","C5"),][,5] <- "1"
+ph3[!ph3$gene_name2%in%c("C2","C5"),][,5] <- "2"
+ph3$cor_r
+fit <- survfit(Surv(Time, Status) ~ cor_r, data = ph3)
+p3 <- ggsurvplot(fit, data = ph3, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                 legend.labs = c("C2+C5","Ohters"),
+                 palette = "lancet")
+p3
+
+
+#write.table(ph1, "pheno_T181-TCGA-T177N4-6clusters-0306-top20genes.txt", sep = "\t", quote = F)
+
+
+###ICGC
+###ICGC array samples
+setwd("F:\\T1220\\phenotype\\Classifier")
+tcgadata <- read.table("ICGC-PACA-AU—arrayexps-269-N.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = FALSE)  
+ptcgadata <- read.table("pheno-ICGC-PACA-AU—arrayexps-269 - 01.txt", sep = "\t", quote = "\"'", header = T, stringsAsFactors = FALSE)
+data3 <- tcgadat
+data3 <- as.data.frame(data3)
+data3 <- data3[rownames(classifier385),]
+data3 <- na.omit(data3)
+data3 <- as.data.frame(data3)
+
+cluster1 <- classifier385[as.character(rownames(data3)),]
+
+gene_name1<-c()
+gene_name2<-c()
+cor_r<-c()
+pvalue<-c()
+
+for (i in 1:ncol(data3)){
+  for (r in 1:ncol(cluster1)){
+    g1=colnames(data3)[i]
+    g2=colnames(cluster1)[r]
+    c_r=cor(as.numeric(data3[,i]),as.numeric(cluster1[,r]),method="spearman")
+    p=cor.test(as.numeric(data3[,i]),as.numeric(cluster1[,r]),method ="spearman")[[3]]
+    gene_name1=c(gene_name1,g1)
+    gene_name2=c(gene_name2,g2)
+    cor_r=c(cor_r,c_r)
+    pvalue=c(pvalue,p)
+  }
+}
+
+data_corco<-data.frame(gene_name1,gene_name2,cor_r,pvalue)
+m <- ""
+n <- ""
+test <- data_corco
+t <- test[order(test[,1], test[,3],decreasing = T),]
+tt <- t[seq(1,1614,by=6),]
+rownames(tt) <- tt$gene_name1
+o <- colnames(data3)
+tt <- tt[o,]
+write.table(tt, "Cluster_correlation_T269-ICGC-MSOP-Rgenes-220129.txt", sep = "\t", quote = F)
+
+phtcgasi <- cbind(ptcgadata, tt)
+
+###KM analysis in ICGC
+picgc <- read.table("ICGC-220206-267.txt", sep = "\t", quote = "\"'", header = T)
+rownames(picgc) <- picgc$icgc_donor_id  
+picgc$gene_name2 <- ph1[as.character(rownames(picgc)),]$gene_name2
+picgc$Relapse.interval
+picgc$DFSevent
+
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(Relapse.interval, DFSevent) ~ gene_name2, data = picgc)
+p <- ggsurvplot(fit, data = picgc, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                legend.labs = c("MS1","MS2","MS3","MS4","MS5","MS6"),
+                palette = "lancet")
+p
+
+cols
+
+ph2 <- picgc[,c(7,8,9)]
+ph2[ph2$gene_name2%in%c("C2","C5"),]$gene_name2 <- "1"
+ph2[!ph2$gene_name2=="1",]$gene_name2 <- "2"
+
+fit <- survfit(Surv(Relapse.interval, DFSevent) ~ gene_name2, data = ph2)
+p1 <- ggsurvplot(fit, data = ph2, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                 legend.labs = c("MS1","Others"),
+                 palette = c("#000000", "#8C8C8C"))
+p1
+######################################################################
+#ph1$Status <- as.factor(ph1$Status)
+#class(ph1$Time)
+
+save.image(file = "20220128ICGCMS6.Rdata")
+
+library(survival)
+library(survminer)
+windowsFonts(Times=windowsFont("Times New Roman"))
+
+fit <- survfit(Surv(Time, Status) ~ gene_name2, data = ph1)
+p <- ggsurvplot(fit, data = ph1, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                legend.labs = c("MS1","MS2","MS3","MS4","MS5","MS6"),
+                palette = "lancet")
+p
+
+cols
+
+ph2 <- ph1
+ph2[ph2$gene_name2%in%c("C2","C5"),][,4] <- "1"
+ph2[!ph2$gene_name2=="1",][,4] <- "2"
+
+fit <- survfit(Surv(Time, Status) ~ gene_name2, data = ph2)
+p1 <- ggsurvplot(fit, data = ph2, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                 legend.labs = c("MS1","Others"),
+                 palette = c("#000000", "#8C8C8C"))
+###
+#"#000000", "#8C8C8C"
+p1
+
+phtcgasi <- cbind(ptcgadata, tt)
+ph3 <- phtcgasi[,c(1,7,18,24,25)]
+ph3 <- ph3[ph3$cor_r>0.5,]
+ph3 <- ph3[ph3$Time>1,]
+ph3$Time <- ph3$donor_interval_of_last_followup/30
+ph3$Status <- ph3$disease_status_last_followup
+ph3 <- na.omit(ph3)
+fit3 <- survfit(Surv(Time, Status) ~ gene_name2, data = ph3)
+p3 <- ggsurvplot(fit3, data = ph3, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                 #legend.labs = c("Cluster 1","Cluster 2","Cluster 3","Cluster 4","Cluster 5","Cluster 6"),
+                 palette = "lancet")
+p3
+
+class(ph3$gene_name2)
+ph3$gene_name2
+ph3[ph3$gene_name2%in%c("C2","C5"),]
+ph3[ph3$gene_name2%in%c("C2","C5"),][,5] <- "1"
+ph3[!ph3$gene_name2%in%c("C2","C5"),][,5] <- "2"
+ph3$cor_r
+fit <- survfit(Surv(Time, Status) ~ cor_r, data = ph3)
+p3 <- ggsurvplot(fit, data = ph3, risk.table = F, conf.int = F,pval = TRUE,pval.method = F,
+                 #legend.labs = c("Cluster 1","Cluster 2","Cluster 3","Cluster 4","Cluster 5","Cluster 6"),
+                 palette = "lancet")
+p3
